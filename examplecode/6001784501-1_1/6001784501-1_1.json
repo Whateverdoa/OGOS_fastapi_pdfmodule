@@ -1,0 +1,39 @@
+{
+    "Description": "600 Stickers op rol 90 x 90 mm 55 g m2 P",
+    "ReferenceAtCustomer": "6001784501-1",
+    "Delivery": "2025-07-24",
+    "Shipment_method": "DHG_EUROPLUS",
+    "OrderQuantity": 200,
+    "Quantity_per_roll": 200,
+    "DispenserQuantity": 0,
+    "Core": "40_mm",
+    "UnitPrice": 70.53,
+    "SupplierId": "Print.com",
+    "Name": "labels-on-roll",
+    "Street": "Marconistraat",
+    "Country": "NL",
+    "PostalCode": "1131JW",
+    "City": "Volendam",
+    "Contacts": [
+        {
+            "LastName": "Runderkamp",
+            "FirstName": "Niels",
+            "Initials": "",
+            "Title:": "Mr./Mevr",
+            "Email": "info@msmm.nl",
+            "Phone": "+31622554627"
+        }
+    ],
+    "Width": "90",
+    "Height": "90",
+    "Shape": "Irregular",
+    "Winding": 2,
+    "Radius": 0,
+    "Premium_White": "N",
+    "Substrate": "55gr_pp_white_mat",
+    "Adhesive": "permanent",
+    "Delivery_Addresses": 1,
+    "numberOfDesigns": "1-3",
+    "LineComment1": "6001784501-1",
+    "Finish": "geen laminaat"
+}

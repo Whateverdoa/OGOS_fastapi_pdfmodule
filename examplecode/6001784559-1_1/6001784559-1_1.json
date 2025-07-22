@@ -1,0 +1,39 @@
+{
+    "Description": "150 Stickers op rol 70 x 130 mm 90 g m2 ",
+    "ReferenceAtCustomer": "6001784559-1",
+    "Delivery": "2025-07-22",
+    "Shipment_method": "DHG_EUROPLUS",
+    "OrderQuantity": 150,
+    "Quantity_per_roll": 0,
+    "DispenserQuantity": 0,
+    "Core": "45_mm",
+    "UnitPrice": 202.87,
+    "SupplierId": "Print.com",
+    "Name": "labels-on-roll",
+    "Street": "Vlakbodem",
+    "Country": "NL",
+    "PostalCode": "3247CP",
+    "City": "Dirksland",
+    "Contacts": [
+        {
+            "LastName": "van Alphen",
+            "FirstName": "Marjon",
+            "Initials": "",
+            "Title:": "Mr./Mevr",
+            "Email": "marjon@salted.nl",
+            "Phone": "+310854019495"
+        }
+    ],
+    "Width": "130",
+    "Height": "70",
+    "Shape": "Rectangle",
+    "Winding": 4,
+    "Radius": 2,
+    "Premium_White": "N",
+    "Substrate": "90gr_antique_white",
+    "Adhesive": "permanent",
+    "Delivery_Addresses": 1,
+    "numberOfDesigns": "1-1",
+    "LineComment1": "6001784559-1",
+    "Finish": "geen laminaat"
+}

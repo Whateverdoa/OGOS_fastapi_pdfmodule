@@ -1,0 +1,39 @@
+{
+    "Description": "100 Stickers op rol 60 x 40 mm 55 g m2 P",
+    "ReferenceAtCustomer": "6001784575-1",
+    "Delivery": "2025-07-24",
+    "Shipment_method": "PNA_3085_ZONDERHANDTEKENING",
+    "OrderQuantity": 100,
+    "Quantity_per_roll": 0,
+    "DispenserQuantity": 0,
+    "Core": "76_mm",
+    "UnitPrice": 237.4,
+    "SupplierId": "Print.com",
+    "Name": "labels-on-roll",
+    "Street": "Pater Witteplein",
+    "Country": "NL",
+    "PostalCode": "1791 DR",
+    "City": "Den Burg",
+    "Contacts": [
+        {
+            "LastName": "Bruin",
+            "FirstName": "Marlon Paul",
+            "Initials": "",
+            "Title:": "Mr./Mevr",
+            "Email": "no@email.com",
+            "Phone": "0610362684"
+        }
+    ],
+    "Width": "40",
+    "Height": "60",
+    "Shape": "Rectangle",
+    "Winding": 3,
+    "Radius": 2,
+    "Premium_White": "N",
+    "Substrate": "55gr_pp_white_gloss",
+    "Adhesive": "permanent",
+    "Delivery_Addresses": 1,
+    "numberOfDesigns": "1-1",
+    "LineComment1": "6001784575-1",
+    "Finish": "single_sided_vernis_gloss"
+}

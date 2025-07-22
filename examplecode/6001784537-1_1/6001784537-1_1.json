@@ -1,0 +1,39 @@
+{
+    "Description": "10000 Stickers op rol 80 x 35 mm 55 g m",
+    "ReferenceAtCustomer": "6001784537-1",
+    "Delivery": "2025-07-24",
+    "Shipment_method": "DHG_EUROPLUS",
+    "OrderQuantity": 10000,
+    "Quantity_per_roll": 0,
+    "DispenserQuantity": 2,
+    "Core": "40_mm",
+    "UnitPrice": 15.96,
+    "SupplierId": "Print.com",
+    "Name": "labels-on-roll",
+    "Street": "Zuidrak",
+    "Country": "NL",
+    "PostalCode": "1771SW",
+    "City": "Wieringerwerf",
+    "Contacts": [
+        {
+            "LastName": "van Dam",
+            "FirstName": "Wendy",
+            "Initials": "",
+            "Title:": "Mr./Mevr",
+            "Email": "no@email.com",
+            "Phone": "+31889900700"
+        }
+    ],
+    "Width": "80",
+    "Height": "35",
+    "Shape": "Rectangle",
+    "Winding": 2,
+    "Radius": 2,
+    "Premium_White": "N",
+    "Substrate": "55gr_pp_white_gloss",
+    "Adhesive": "permanent",
+    "Delivery_Addresses": 1,
+    "numberOfDesigns": "1-1",
+    "LineComment1": "6001784537-1",
+    "Finish": "single_sided_vernis_gloss"
+}

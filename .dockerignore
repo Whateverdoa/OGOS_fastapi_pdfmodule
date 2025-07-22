@@ -1,0 +1,85 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+.coverage
+*.cover
+.hypothesis/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+docs/
+README.md
+
+# Testing
+tests/
+test_*.py
+*_test.py
+test_main.http
+
+# Example files (large PDFs)
+examplecode/
+
+# Generated PDFs from testing
+*_result.pdf
+*_output.pdf
+*_removed.pdf
+*_processed.pdf
+UNIVERSAL_*.pdf
+SURGICAL_*.pdf
+PRECISE_*.pdf
+LAYER_*.pdf
+CORRECTED_*.pdf
+FINAL_*.pdf
+WORKING_*.pdf
+FIXED_*.pdf
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Temporary files
+*.tmp
+temp/
+tmp/
+
+# UV lock file (not needed in container)
+uv.lock

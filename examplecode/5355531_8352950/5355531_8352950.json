@@ -1,0 +1,42 @@
+{
+    "Description": "labels_on_roll",
+    "ReferenceAtCustomer": "5355531-8352950",
+    "Delivery": "2025-07-25",
+    "Shipment_method": "DHL_EXPRESS-EUROPLUS",
+    "OrderQuantity": 500,
+    "Quantity_per_roll": "",
+    "DispenserQuantity": "0",
+    "Core": "40",
+    "UnitPrice": 43.28,
+    "SupplierId": "7d9ace2e-fa66-48ac-a142-7b3f68eb9f8c",
+    "Name": "labels_on_roll",
+    "Street": "Sint Domusstraat 58",
+    "Country": "NL",
+    "PostalCode": "4301 CR",
+    "City": "Zierikzee",
+    "Contacts": [
+        {
+            "LastName": "van der Steen",
+            "FirstName": "Barbara",
+            "Initials": "",
+            "Title": "",
+            "PhoneNumber": "0111402193",
+            "FaxNumber": "",
+            "GSMNumber": "",
+            "Email": "suppliers@helloprint.com",
+            "Function": ""
+        }
+    ],
+    "Width": 50,
+    "Height": 50,
+    "Shape": "circle",
+    "Winding": 2,
+    "Radius": 0,
+    "Premium_White": "N",
+    "Substrate": "mat wit PP",
+    "Adhesive": "permanent",
+    "LineComment1": "Jobsheet made for helloprint v2",
+    "Colors": "CMYK",
+    "Delivery_Addresses": 1,
+    "numberOfDesigns": "1-1"
+}
