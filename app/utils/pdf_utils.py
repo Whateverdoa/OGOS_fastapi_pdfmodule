@@ -1,5 +1,4 @@
 import fitz  # PyMuPDF
-from pypdf import PdfReader, PdfWriter, PdfMerger
 import os
 import tempfile
 from typing import Dict, Tuple, Optional
