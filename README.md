@@ -82,12 +82,39 @@ Processes a PDF file with dieline modifications based on job configuration.
   "height": 50,
   "radius": 0,
   "spot_color_name": "stans",
-  "line_thickness": 0.5
+  "line_thickness": 0.5,
+  "winding": 2
 }
 ```
 
 **Response:** 
 - Processed PDF file download
+
+Response headers include:
+- `X-Processing-Reference`
+- `X-Processing-Shape`
+- `X-Winding-Route` (if `winding` supplied)
+
+Winding route mapping is automatically computed from `winding` using:
+1 → 180, 2 → 0, 3 → 90, 4 → 270, 5/6/7/8 → 0.
+
+Example curl (inline JSON):
+```bash
+curl -X POST http://localhost:8000/api/pdf/process \
+  -F "pdf_file=@/path/to/file.pdf" \
+  -F 'job_config={
+    "reference":"PROD-12345",
+    "shape":"circle",
+    "width":50,
+    "height":50,
+    "spot_color_name":"stans",
+    "line_thickness":0.5,
+    "winding":2
+  }' \
+  -D - \
+  -o PROD-12345_processed.pdf
+# Look for X-Winding-Route in response headers
+```
 
 ### 3. Process PDF with JSON File
 **POST** `/api/pdf/process-with-json-file`
@@ -100,6 +127,43 @@ Processes a PDF file using a separate JSON configuration file (compatible with e
 
 **Response:**
 - Processed PDF file download
+
+Example JSON file content:
+```json
+{
+  "ReferenceAtCustomer": "PROD-67890",
+  "Description": "40x140mm rectangle, 2mm radius",
+  "Shape": "rectangle",
+  "Width": 40,
+  "Height": 140,
+  "Radius": 2,
+  "Winding": 3,
+  "Substrate": "PP white",
+  "Adhesive": "permanent",
+  "Colors": "CMYK"
+}
+```
+
+Example curl (separate JSON file):
+```bash
+curl -X POST http://localhost:8000/api/pdf/process-with-json-file \
+  -F "pdf_file=@/path/to/file.pdf" \
+  -F "json_file=@/path/to/config.json" \
+  -D - \
+  -o PROD-67890_processed.pdf
+# Look for X-Winding-Route in response headers
+```
+
+### 4. Winding Route
+**GET** `/api/pdf/route-by-winding/{winding_value}`
+
+Returns the mapped route angle (0, 90, 180, 270) for a given winding value (1-8). Accepts string or numeric input.
+
+Example:
+```bash
+curl -s http://localhost:8000/api/pdf/route-by-winding/3
+# {"winding_value":"3","route":90}
+```
 
 ## Configuration
 
@@ -215,6 +279,11 @@ All dielines are created with:
 1. **Custom Shape Processing**: Currently copies the PDF without full spot color renaming (placeholder implementation)
 2. **Multi-page PDFs**: Optimized for single-page label PDFs
 3. **Complex Paths**: May not detect all types of complex dieline paths
+
+## Field Usage Notes
+
+- `winding`: Used to compute and return a route angle via header `X-Winding-Route` and in the JSON `processing_details` of the internal result. Currently not rotating or altering the artwork; it’s metadata for downstream handling.
+- `substrate` / `adhesive` / `colors`: Accepted and preserved in the job config, but not used to alter processing at this time. If you need behavior based on a substrate ID (e.g., different line thickness or color), we can add a rule table.
 
 ## Future Enhancements
 

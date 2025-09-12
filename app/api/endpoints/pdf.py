@@ -7,11 +7,12 @@ import tempfile
 import shutil
 from ...models.schemas import (
     PDFJobConfig, PDFAnalysisResult, PDFProcessingResponse,
-    ErrorResponse, ShapeType
+    ErrorResponse, ShapeType, WindingRouteResponse
 )
 from ...core.pdf_processor import PDFProcessor
 from ...core.pdf_analyzer import PDFAnalyzer
 from ...core.config import settings
+from ...utils.winding_router import route_by_winding_str
 
 
 router = APIRouter(prefix="/api/pdf", tags=["pdf"])
@@ -103,14 +104,23 @@ async def process_pdf(
             base_name = os.path.splitext(pdf_file.filename)[0]
             output_filename = f"{base_name}_processed_{job_config_obj.reference}.pdf"
             
+            # Prepare headers
+            headers = {
+                'X-Processing-Reference': job_config_obj.reference,
+                'X-Processing-Shape': job_config_obj.shape
+            }
+            winding_route = (
+                result.get('processing_details', {}).get('winding_route')
+                if isinstance(result.get('processing_details'), dict) else None
+            )
+            if winding_route is not None:
+                headers['X-Winding-Route'] = str(winding_route)
+
             return FileResponse(
                 output_path,
                 media_type='application/pdf',
                 filename=output_filename,
-                headers={
-                    'X-Processing-Reference': job_config_obj.reference,
-                    'X-Processing-Shape': job_config_obj.shape
-                }
+                headers=headers
             )
         else:
             # Return error response
@@ -130,6 +140,20 @@ async def process_pdf(
         # Clean up temporary input file
         if temp_input_path and os.path.exists(temp_input_path):
             os.unlink(temp_input_path)
+
+
+@router.get("/route-by-winding/{winding_value}", response_model=WindingRouteResponse)
+async def get_route_by_winding(winding_value: str):
+    """
+    Return the route angle (0, 90, 180, 270) mapped from a winding value.
+
+    Accepts either numeric or string inputs (1-8). Returns 400 if unmapped.
+    """
+    try:
+        route = route_by_winding_str(winding_value)
+        return WindingRouteResponse(winding_value=str(winding_value), route=route)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/process-with-json-file")
@@ -197,14 +221,23 @@ async def process_pdf_with_json_file(
             base_name = os.path.splitext(pdf_file.filename)[0]
             output_filename = f"{base_name}_processed_{job_config_obj.reference}.pdf"
             
+            # Prepare headers
+            headers = {
+                'X-Processing-Reference': job_config_obj.reference,
+                'X-Processing-Shape': job_config_obj.shape
+            }
+            winding_route = (
+                result.get('processing_details', {}).get('winding_route')
+                if isinstance(result.get('processing_details'), dict) else None
+            )
+            if winding_route is not None:
+                headers['X-Winding-Route'] = str(winding_route)
+
             return FileResponse(
                 output_path,
                 media_type='application/pdf',
                 filename=output_filename,
-                headers={
-                    'X-Processing-Reference': job_config_obj.reference,
-                    'X-Processing-Shape': job_config_obj.shape
-                }
+                headers=headers
             )
         else:
             # Return error response

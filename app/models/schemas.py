@@ -55,3 +55,9 @@ class ErrorResponse(BaseModel):
     error: str = Field(..., description="Error message")
     detail: Optional[str] = Field(None, description="Detailed error information")
     reference: Optional[str] = Field(None, description="Reference number if available")
+
+
+class WindingRouteResponse(BaseModel):
+    """Response for winding routing endpoint"""
+    winding_value: str = Field(..., description="Original input winding value")
+    route: int = Field(..., description="Mapped route angle (0, 90, 180, 270)")

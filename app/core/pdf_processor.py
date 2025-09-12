@@ -7,6 +7,7 @@ from .shape_generators import ShapeGenerator
 from ..utils.spot_color_handler import SpotColorHandler
 from ..utils.pdf_utils import PDFUtils
 from ..utils.universal_dieline_remover import UniversalDielineRemover
+from ..utils.winding_router import route_by_winding, route_by_winding_str
 
 
 class PDFProcessor:
@@ -47,6 +48,18 @@ class PDFProcessor:
                 'y1': box_coords_mm['y1'] * self.MM_TO_POINTS
             }
             
+            # Compute winding route mapping if provided
+            winding_route = None
+            try:
+                if job_config.winding is not None:
+                    winding_route = route_by_winding(job_config.winding)
+            except Exception:
+                # Try string-based mapping as a fallback
+                try:
+                    winding_route = route_by_winding_str(str(job_config.winding))
+                except Exception:
+                    winding_route = None
+
             # Step 2: Process based on shape type
             if job_config.shape == ShapeType.custom:
                 # For custom shapes, keep the existing shape but rename spot color
@@ -70,7 +83,9 @@ class PDFProcessor:
                     'shape_type': job_config.shape,
                     'dimensions': f'{job_config.width}mm x {job_config.height}mm',
                     'spot_color': job_config.spot_color_name,
-                    'line_thickness': job_config.line_thickness
+                    'line_thickness': job_config.line_thickness,
+                    'winding': job_config.winding,
+                    'winding_route': winding_route
                 }
             }
             
