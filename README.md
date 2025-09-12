@@ -285,6 +285,117 @@ All dielines are created with:
 - `winding`: Used to compute and return a route angle via header `X-Winding-Route` and in the JSON `processing_details` of the internal result. Currently not rotating or altering the artwork; it’s metadata for downstream handling.
 - `substrate` / `adhesive` / `colors`: Accepted and preserved in the job config, but not used to alter processing at this time. If you need behavior based on a substrate ID (e.g., different line thickness or color), we can add a rule table.
 
+## Deploying on a Droplet (Uvicorn + Nginx)
+
+The simplest production setup on a Droplet is: run Uvicorn on localhost:8000 and put Nginx in front as a reverse proxy on ports 80/443. This gives standard ports, HTTPS, large upload handling, and better resiliency.
+
+### 1) Update app and venv
+
+```
+cd ~/fastapi-pdf
+git pull origin main
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -U pip
+pip install -r requirements.txt
+```
+
+Start locally on 127.0.0.1 (1 worker is recommended for a 512MB droplet):
+
+```
+uvicorn main:app --host 127.0.0.1 --port 8000 --workers 1
+```
+
+### 2) Install and configure Nginx
+
+```
+sudo apt update && sudo apt install -y nginx
+```
+
+Create `/etc/nginx/sites-available/ogos-fastapi` with:
+
+```
+server {
+  listen 80;
+  server_name YOUR_DOMAIN_OR_IP;  # e.g., 134.122.54.90 or api.example.com
+
+  # Allow large PDF uploads and long processing time
+  client_max_body_size 100m;
+  proxy_read_timeout 300s;
+
+  location / {
+    proxy_pass http://127.0.0.1:8000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+```
+
+Enable site and reload Nginx:
+
+```
+sudo ln -s /etc/nginx/sites-available/ogos-fastapi /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Now the API is reachable on `http://YOUR_DOMAIN_OR_IP/` (no :8000 needed).
+
+### 3) Optional: HTTPS with Let’s Encrypt
+
+If you have a domain pointed to the Droplet’s IP:
+
+```
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+```
+
+Certbot will configure TLS and auto-renew.
+
+### 4) Run as a systemd service (auto-restart)
+
+Create `/etc/systemd/system/ogos-fastapi.service`:
+
+```
+[Unit]
+Description=OGOS FastAPI PDF Module
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/root/fastapi-pdf
+Environment=PATH=/root/fastapi-pdf/.venv/bin
+ExecStart=/root/fastapi-pdf/.venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000 --workers 1
+Restart=always
+RestartSec=5
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable and start:
+
+```
+sudo systemctl daemon-reload
+sudo systemctl enable --now ogos-fastapi
+sudo systemctl status ogos-fastapi
+```
+
+### 5) Firewall (optional)
+
+If UFW is enabled:
+
+```
+sudo ufw allow 80,443/tcp
+sudo ufw deny 8000/tcp   # if Uvicorn is bound to 127.0.0.1, this is not necessary
+sudo ufw status
+```
+
+You can also restrict inbound ports at the DigitalOcean Cloud Firewall level.
+
 ## Future Enhancements
 
 - [ ] Full implementation of spot color renaming for custom shapes
