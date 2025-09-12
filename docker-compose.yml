@@ -1,0 +1,14 @@
+version: "3.9"
+services:
+  api:
+    build: .
+    image: ogos-pdf-module:latest
+    ports:
+      - "8080:8080"
+    environment:
+      # Tune workers if desired
+      - UVICORN_WORKERS=2
+      # Example: override log level or CORS via env if needed
+      # - LOG_LEVEL=INFO
+    restart: unless-stopped
+

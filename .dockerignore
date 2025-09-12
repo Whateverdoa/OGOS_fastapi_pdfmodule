@@ -1,0 +1,17 @@
+.git
+.gitignore
+.idea
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.log
+*.tmp
+node_modules
+.DS_Store
+examplecode
+.zencoder
+uv.lock
+

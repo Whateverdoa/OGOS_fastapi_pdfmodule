@@ -1,0 +1,19 @@
+spec:
+  name: ogos-pdf-module
+  services:
+    - name: api
+      dockerfile_path: Dockerfile
+      http_port: 8080
+      instance_count: 1
+      instance_size_slug: basic-xxs
+      routes:
+        - path: /
+      envs:
+        # Example environment overrides; adjust or remove as needed
+        - key: LOG_LEVEL
+          value: INFO
+          scope: RUN_TIME
+        - key: API_TITLE
+          value: PDF Dieline Processor
+          scope: RUN_TIME
+
