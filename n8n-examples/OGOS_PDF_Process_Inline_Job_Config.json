@@ -1,0 +1,160 @@
+{
+  "name": "OGOS PDF Process (inline job_config)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [260, 240]
+    },
+    {
+      "parameters": {
+        "filePath": "/path/to/your.pdf",
+        "binaryPropertyName": "pdf_file"
+      },
+      "id": "read-pdf",
+      "name": "Read Binary File (PDF)",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [520, 240]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "job_config_str",
+              "value": "{\"reference\":\"PROD-12345\",\"description\":\"50mm round label\",\"shape\":\"circle\",\"width\":50,\"height\":50,\"spot_color_name\":\"stans\",\"line_thickness\":0.5,\"winding\":2}"
+            }
+          ]
+        }
+      },
+      "id": "set-job-config",
+      "name": "Set job_config (string)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [760, 240]
+    },
+    {
+      "parameters": {
+        "url": "http://134.122.54.90:8000/api/pdf/process",
+        "responseFormat": "file",
+        "dataPropertyName": "processed_pdf",
+        "requestMethod": "POST",
+        "sendBinaryData": true,
+        "binaryPropertyName": "pdf_file",
+        "options": {
+          "timeout": 300000
+        },
+        "bodyParametersUi": {
+          "parameter": [
+            {
+              "name": "job_config",
+              "value": "={{$json[\"job_config_str\"]}}"
+            }
+          ]
+        }
+      },
+      "id": "http-process",
+      "name": "HTTP Request (Process PDF)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1020, 240]
+    },
+    {
+      "parameters": {
+        "binaryPropertyName": "processed_pdf",
+        "filePath": "=./{{ $json[\"headers\"]?.[\"x-processing-reference\"] || \"output\" }}.pdf"
+      },
+      "id": "write-file",
+      "name": "Write Binary File",
+      "type": "n8n-nodes-base.writeBinaryFile",
+      "typeVersion": 1,
+      "position": [1280, 240]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": false,
+        "values": {
+          "string": [
+            {
+              "name": "X-Winding-Route",
+              "value": "={{$json[\"headers\"]?.[\"x-winding-route\"] || \"\"}}"
+            },
+            {
+              "name": "X-Processing-Reference",
+              "value": "={{$json[\"headers\"]?.[\"x-processing-reference\"] || \"\"}}"
+            },
+            {
+              "name": "X-Processing-Shape",
+              "value": "={{$json[\"headers\"]?.[\"x-processing-shape\"] || \"\"}}"
+            }
+          ]
+        }
+      },
+      "id": "capture-headers",
+      "name": "Capture Headers (optional)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [1280, 400]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Binary File (PDF)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Binary File (PDF)": {
+      "main": [
+        [
+          {
+            "node": "Set job_config (string)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set job_config (string)": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request (Process PDF)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request (Process PDF)": {
+      "main": [
+        [
+          {
+            "node": "Write Binary File",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Capture Headers (optional)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "pinData": {}
+}
+
