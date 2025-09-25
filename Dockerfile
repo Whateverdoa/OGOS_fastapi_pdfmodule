@@ -19,6 +19,9 @@ RUN apt-get update && apt-get install -y \
     # Clean up
     && rm -rf /var/lib/apt/lists/*
 
+# Add Ghostscript for font embedding
+RUN apt-get update && apt-get install -y ghostscript && rm -rf /var/lib/apt/lists/*
+
 # Copy requirements first for better caching
 COPY pyproject.toml ./
 

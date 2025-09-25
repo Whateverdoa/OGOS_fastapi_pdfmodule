@@ -72,6 +72,9 @@ Processes a PDF file with dieline modifications based on job configuration.
 **Request:**
 - `pdf_file`: PDF file upload
 - `job_config`: JSON string with configuration
+- Optional query params:
+  - `fonts=embed|outline` (override job_config; default is embed with auto‑fallback to outline)
+  - `remove_marks=true|false` (remove crop/registration marks using Separation/All)
 
 **Example job_config:**
 ```json
@@ -82,7 +85,9 @@ Processes a PDF file with dieline modifications based on job configuration.
   "height": 50,
   "radius": 0,
   "spot_color_name": "stans",
-  "line_thickness": 0.5
+  "line_thickness": 0.5,
+  "fonts": "embed",
+  "remove_marks": false
 }
 ```
 
@@ -97,6 +102,7 @@ Processes a PDF file using a separate JSON configuration file (compatible with e
 **Request:**
 - `pdf_file`: PDF file upload
 - `json_file`: JSON configuration file upload
+- Optional query params: `fonts=embed|outline`, `remove_marks=true|false`
 
 **Response:**
 - Processed PDF file download
@@ -138,6 +144,25 @@ The service accepts JSON configuration in the following format:
 - `"rectangle"`: Creates rectangular dieline with optional corner radius
 - `"custom"`: Preserves existing dieline shape, only renames spot color
 
+### Winding Value Processing
+The application includes a winding value routing system that maps winding values (1–8) to rotation angles (0°, 90°, 180°, 270°) for label processing. Mapping:
+
+- 1 → 180°
+- 2 → 0° (no rotation)
+- 3 → 90°
+- 4 → 270°
+- 5 → 180° (inverted of 1)
+- 6 → 0° (inverted of 2)
+- 7 → 90° (inverted of 3)
+- 8 → 270° (inverted of 4)
+
+Rotation behavior:
+- If the PDF trimbox size matches the job width×height (±1 mm), the base artwork is rotated according to the winding before the new dieline is overlaid (standard shapes) or before/after color renaming (custom). If winding=2, no rotation is applied.
+- If sizes do not match the job JSON, rotation is skipped defensively.
+- Response headers may include `X-Winding-Value`, `X-Rotation-Angle`, `X-Needs-Rotation` for traceability.
+
+See `docs/winding_routing_specification.md` for detailed specifications.
+
 ## Development
 
 ### Project Structure
@@ -156,12 +181,27 @@ OGOS_fastapi_pdfmodule/
 │   │   └── schemas.py              # Pydantic models
 │   └── utils/
 │       ├── pdf_utils.py            # PDF utilities
-│       └── spot_color_handler.py   # Spot color manipulation
+│       ├── spot_color_handler.py   # Spot color manipulation
+│       └── winding_router.py       # Winding value routing functions
+├── docs/
+│   └── winding_routing_specification.md  # Winding routing documentation
 ├── examplecode/                    # Example PDFs and scripts
 ├── main.py                         # FastAPI application
 ├── pyproject.toml                  # Project dependencies
 └── README.md                       # This file
 ```
+
+### Makefile & Scripts
+
+Common targets:
+- `make build-dev && make dev` (dev at http://localhost:8001)
+- `make build && make up` (prod at http://localhost:8000)
+- `make analyze PDF=path [API_BASE=url]`
+- `make process PDF=path JOB_JSON='{...}' OUT=out.pdf [API_BASE]`
+- `make process-json PDF=path JSON_FILE=path OUT=out.pdf [API_BASE]`
+- `make check-overprint PDF=path`
+
+Direct script usage: see `scripts/send_pdf.sh --help` (supports `--fonts embed|outline` and `--remove-marks`).
 
 ### Testing
 
@@ -209,6 +249,24 @@ All dielines are created with:
 - 0.5pt line thickness (configurable)
 - Overprint enabled
 - Custom spot color name (default: "stans")
+
+### Fonts Handling
+- Default: embed/subset all fonts (Ghostscript). If embedding fails or any unembedded fonts are detected, the service automatically outlines text.
+- Force behavior:
+  - Job JSON: `"fonts": "outline"`
+  - Query: `?fonts=outline`
+
+### Registration/Crop Marks
+- When enabled (`remove_marks=true` or `"remove_marks": true`), the service removes marks that use the registration color (Separation `All`), including inside Form XObjects.
+
+### 4. Health & Version
+- `GET /healthz` → `{ "status": "ok", "uptime_seconds": <float> }`
+- `GET /version` → `{ "name", "version", "git_commit" }`
+
+Tip: set `GIT_COMMIT` env var during deploy to report the commit.
+
+### Overprint
+- Dielines are enforced with overprint in the overlay form stream so output RIPs honor overprint on the spot stroke.
 
 ## Known Limitations
 
