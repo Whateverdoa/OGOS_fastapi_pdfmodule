@@ -8,6 +8,10 @@ class ShapeType(str, Enum):
     rectangle = "rectangle"
     custom = "custom"
 
+class FontMode(str, Enum):
+    embed = "embed"
+    outline = "outline"
+
 
 class PDFJobConfig(BaseModel):
     """Configuration for PDF processing job based on JSON input"""
@@ -23,6 +27,8 @@ class PDFJobConfig(BaseModel):
     substrate: Optional[str] = Field(None, description="Substrate material")
     adhesive: Optional[str] = Field(None, description="Adhesive type")
     colors: Optional[str] = Field(None, description="Color specification")
+    fonts: FontMode = Field(FontMode.embed, description="Font handling: 'embed' (default) or 'outline'")
+    remove_marks: bool = Field(False, description="Remove crop/registration marks (e.g., Separation/All)")
 
 
 class PDFAnalysisResult(BaseModel):

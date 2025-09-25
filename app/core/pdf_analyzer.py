@@ -218,30 +218,102 @@ class PDFAnalyzer:
         return 'other_dieline'
         
     def _extract_spot_colors(self) -> List[str]:
-        """Extract spot colors from the PDF"""
-        spot_colors = []
+        """Extract spot colors from the PDF (page and nested XObjects)."""
+        spot_colors: List[str] = []
         
         try:
-            # Analyze each page with pypdf
-            for page_num, page in enumerate(self.reader.pages):
-                if '/Resources' in page and '/ColorSpace' in page['/Resources']:
-                    colorspaces = page['/Resources']['/ColorSpace']
-                    
-                    for cs_name, cs_def in colorspaces.items():
-                        # Extract color names from colorspace definitions
+            for page in self.reader.pages:
+                # 1) Inspect page resources and recursively inspect XObjects
+                self._extract_spot_colors_from_resources(page, spot_colors)
+
+                # 2) Fallback: scan content streams for target names
+                contents = page.get('/Contents')
+                self._scan_contents_for_targets(contents, spot_colors)
+
+        except Exception as e:
+            print(f"Error extracting spot colors: {e}")
+        
+        return spot_colors
+
+    def _extract_spot_colors_from_resources(self, page_or_obj, spot_colors: List[str]):
+        """Walk /Resources to find ColorSpace entries, including within Form XObjects."""
+        try:
+            resources = page_or_obj.get('/Resources') if hasattr(page_or_obj, 'get') else None
+            if resources is None:
+                # Might already be resources dict or an indirect object
+                resources = page_or_obj
+            if hasattr(resources, 'get_object'):
+                resources = resources.get_object()
+
+            if not resources or '/ColorSpace' not in resources:
+                pass
+            else:
+                colorspaces = resources['/ColorSpace']
+                # Ensure dereferenced
+                if hasattr(colorspaces, 'get_object'):
+                    colorspaces = colorspaces.get_object()
+                if hasattr(colorspaces, 'items'):
+                    for _, cs_def in colorspaces.items():
                         color_name = self._parse_colorspace_for_name(cs_def)
                         if color_name and color_name not in spot_colors:
                             spot_colors.append(color_name)
-                            
+
+            # Dive into XObjects for nested resources
+            if resources and '/XObject' in resources:
+                xobjs = resources['/XObject']
+                if hasattr(xobjs, 'get_object'):
+                    xobjs = xobjs.get_object()
+                if hasattr(xobjs, 'items'):
+                    for _, xo in xobjs.items():
+                        if hasattr(xo, 'get_object'):
+                            xo = xo.get_object()
+                        # Only Forms typically have their own resources we care about
+                        subtype = str(xo.get('/Subtype')) if hasattr(xo, 'get') else ''
+                        if subtype == '/Form' and '/Resources' in xo:
+                            self._extract_spot_colors_from_resources(xo['/Resources'], spot_colors)
+                        # Also scan Form content for target names
+                        self._scan_contents_for_targets(xo.get('/Contents'), spot_colors)
+
         except Exception as e:
-            print(f"Error extracting spot colors: {e}")
-            
-        return spot_colors
+            # Non-fatal: continue with best-effort extraction
+            print(f"Error walking resources for spot colors: {e}")
+
+    def _scan_contents_for_targets(self, contents, spot_colors: List[str]):
+        """Scan content streams (and arrays of streams) for target color names."""
+        try:
+            if contents is None:
+                return
+            # Contents may be a single stream or an array
+            if hasattr(contents, 'get_object'):
+                contents = contents.get_object()
+
+            def _scan_stream(obj):
+                if obj is None:
+                    return
+                if hasattr(obj, 'get_object'):
+                    obj = obj.get_object()
+                if hasattr(obj, 'get_data'):
+                    try:
+                        text = obj.get_data().decode('latin-1', errors='ignore')
+                    except Exception:
+                        text = ''
+                    for target in self.TARGET_SPOT_COLORS:
+                        if target in text and target not in spot_colors:
+                            spot_colors.append(target)
+                elif isinstance(obj, list):
+                    for item in obj:
+                        _scan_stream(item)
+
+            _scan_stream(contents)
+        except Exception:
+            pass
         
     def _parse_colorspace_for_name(self, cs_def) -> Optional[str]:
         """Parse colorspace definition to extract color name"""
         try:
             # Convert to string to handle IndirectObjects
+            if hasattr(cs_def, 'get_object'):
+                cs_def = cs_def.get_object()
             cs_def_str = str(cs_def)
             
             # Look for Separation colorspace patterns
