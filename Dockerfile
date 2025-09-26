@@ -31,6 +31,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir \
     fastapi \
     uvicorn[standard] \
+    gunicorn \
     python-multipart \
     pydantic \
     pydantic-settings \
