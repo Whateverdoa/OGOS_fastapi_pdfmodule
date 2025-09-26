@@ -6,6 +6,7 @@ WORKDIR /app
 
 # Install system dependencies required for PDF processing
 RUN apt-get update && apt-get install -y \
+    bash \
     # Required for PyMuPDF
     libmupdf-dev \
     mupdf-tools \
