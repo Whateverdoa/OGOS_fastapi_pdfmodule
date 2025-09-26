@@ -9,6 +9,25 @@ from ...models.schemas import (
     PDFJobConfig, PDFAnalysisResult, PDFProcessingResponse,
     ErrorResponse, ShapeType, FontMode
 )
+
+# Helper: normalize incoming shape strings (synonyms -> enum values)
+def _normalize_shape(value: str | None) -> str | None:
+    if value is None:
+        return None
+    s = str(value).strip().lower()
+    mapping = {
+        # expected
+        'circle': 'circle',
+        'rectangle': 'rectangle',
+        'custom': 'custom',
+        # synonyms
+        'irregular': 'custom',
+        'square': 'rectangle',
+        'rect': 'rectangle',
+        'oval': 'circle',
+        'ellipse': 'circle',
+    }
+    return mapping.get(s, s)
 from ...core.pdf_processor import PDFProcessor
 from ...core.pdf_analyzer import PDFAnalyzer
 from ...core.config import settings
@@ -76,6 +95,9 @@ async def process_pdf(
     # Parse job configuration
     try:
         config_dict = json.loads(job_config)
+        # Normalize shape synonyms before validation
+        if 'shape' in config_dict:
+            config_dict['shape'] = _normalize_shape(config_dict.get('shape'))
         job_config_obj = PDFJobConfig(**config_dict)
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=400, detail=f"Invalid JSON in job_config: {str(e)}")
@@ -182,8 +204,9 @@ async def process_pdf_with_json_file(
         config_dict = json.loads(json_content)
         
         # Map JSON fields to PDFJobConfig
-        # Handle both uppercase and lowercase shape values
-        shape_value = config_dict.get('Shape', config_dict.get('shape', '')).lower()
+        # Handle both uppercase and lowercase shape values and synonyms
+        raw_shape = config_dict.get('Shape', config_dict.get('shape', ''))
+        shape_value = _normalize_shape(raw_shape)
         
         job_config_data = {
             'reference': config_dict.get('ReferenceAtCustomer', config_dict.get('reference', '')),

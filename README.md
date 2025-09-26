@@ -140,9 +140,9 @@ The service accepts JSON configuration in the following format:
 ```
 
 ### Shape Types
-- `"circle"`: Creates circular or oval dieline
-- `"rectangle"`: Creates rectangular dieline with optional corner radius
-- `"custom"`: Preserves existing dieline shape, only renames spot color
+- `"circle"`: Creates circular or oval dieline (synonyms: `oval`, `ellipse`)
+- `"rectangle"`: Creates rectangular dieline with optional corner radius (synonyms: `square`, `rect`)
+- `"custom"`: Preserves existing dieline shape, only renames spot color (synonym: `irregular`)
 
 ### Winding Value Processing
 The application includes a winding value routing system that maps winding values (1–8) to rotation angles (0°, 90°, 180°, 270°) for label processing. Mapping:
@@ -155,6 +155,12 @@ The application includes a winding value routing system that maps winding values
 - 6 → 0° (inverted of 2)
 - 7 → 90° (inverted of 3)
 - 8 → 270° (inverted of 4)
+
+Winding router setup example (as configured in Esko):
+
+![Winding router mapping example](docs/images/winding_router.png)
+
+Note on inverted windings (5–8): these are opposite on the roll. In production, add a rewind step so orientation matches press expectations. Practically, a 90° rotation inverted on the roll corresponds to 270° after rewinding (and vice versa).
 
 Rotation behavior:
 - If the PDF trimbox size matches the job width×height (±1 mm), the base artwork is rotated according to the winding before the new dieline is overlaid (standard shapes) or before/after color renaming (custom). If winding=2, no rotation is applied.
@@ -202,6 +208,42 @@ Common targets:
 - `make check-overprint PDF=path`
 
 Direct script usage: see `scripts/send_pdf.sh --help` (supports `--fonts embed|outline` and `--remove-marks`).
+
+## Deployment
+
+### Recommended: DigitalOcean App Platform
+- Why: This service performs CPU-heavy PDF work and depends on Ghostscript. Serverless platforms like Vercel have strict runtime, memory, and binary limits that are not a good fit. DO App Platform (or a Droplet) runs our Docker image without those constraints.
+
+Environments (staging → production):
+- Use the same container image with different env vars.
+- Staging spec: `do-app.staging.yaml` (docs enabled, DEBUG logs, higher upload limit).
+- Production spec: `do-app.prod.yaml` (docs disabled, INFO logs, stricter limits).
+
+Quick start:
+- Preferred: Create an app from `do-app.staging.yaml` to test, then promote with `do-app.prod.yaml` when ready.
+- Or: point DO to `Dockerfile.prod` directly and set env vars in the UI.
+- Health check path: `/healthz`.
+- Suggested instance: `basic-xxs` or larger depending on throughput and file sizes.
+
+Local production run:
+- `docker compose -f docker-compose.prod.yml up --build`
+
+Key files:
+- `Dockerfile.prod`: Production container (non-root, Ghostscript, Gunicorn).
+- `scripts/start.sh`: Starts Gunicorn and sets sensible worker defaults.
+- `gunicorn_conf.py`: Timeouts/logging tuned for heavy PDF tasks.
+- `do-app.staging.yaml` / `do-app.prod.yaml`: App Platform specs for staging and prod.
+
+### About Vercel
+- Vercel excels at static sites and short-lived serverless APIs. This project needs native binaries (Ghostscript), sizeable uploads, and longer processing times. Those don’t align well with Vercel’s serverless limits. If you must use Vercel, you’d need to offload the heavy processing to a containerized worker elsewhere and only keep a thin API on Vercel.
+
+### Env Vars of Interest
+- `ENVIRONMENT` — `dev`, `staging`, or `prod`.
+- `ENABLE_DOCS` — `true`/`false` to toggle FastAPI docs UI.
+- `MAX_FILE_SIZE` (bytes) — reject oversized uploads.
+- `LOG_LEVEL` — `INFO` (default) or `DEBUG`.
+- `GUNICORN_TIMEOUT` — increase for very large PDFs (default 300s).
+- `WEB_CONCURRENCY` — override worker count if needed (default 1–2 based on CPUs).
 
 ### Testing
 

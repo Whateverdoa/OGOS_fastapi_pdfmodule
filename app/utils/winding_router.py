@@ -27,8 +27,8 @@ def route_by_winding(winding_value):
         # Inverted on the roll → mirror 1–4
         5: 180,  # like 1
         6: 0,    # like 2
-        7: 90,   # like 3
-        8: 270,  # like 4
+        7: 90,   # inverted on the roll like 3
+        8: 270,  # inverted on the roll like 4
     }
     
     if winding_value in routing_table:

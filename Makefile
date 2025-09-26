@@ -1,4 +1,4 @@
-.PHONY: help build up down logs shell test clean dev prod analyze process process-json check-overprint batch-analyze batch-process
+.PHONY: help build up down logs shell test clean dev prod analyze process process-json check-overprint batch-analyze batch-process prod-local
 
 # Default target
 help:
@@ -11,6 +11,7 @@ help:
 	@echo "Production:"
 	@echo "  make prod        - Start production environment"
 	@echo "  make build       - Build production image"
+	@echo "  make prod-local  - Run production image locally (Dockerfile.prod)"
 	@echo ""
 	@echo "Common:"
 	@echo "  make up          - Start services"
@@ -50,6 +51,10 @@ prod:
 
 build:
 	docker-compose build
+
+# Run the production image locally using Dockerfile.prod
+prod-local:
+	docker compose -f docker-compose.prod.yml up --build
 
 # Common commands
 up:

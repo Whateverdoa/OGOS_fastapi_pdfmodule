@@ -6,10 +6,15 @@ import os
 import subprocess
 import time
 
+enable_docs = settings.enable_docs or settings.environment in ("dev", "staging")
+
 app = FastAPI(
     title=settings.api_title,
     version=settings.api_version,
-    description=settings.api_description
+    description=settings.api_description,
+    docs_url="/docs" if enable_docs else None,
+    redoc_url="/redoc" if enable_docs else None,
+    openapi_url="/openapi.json" if enable_docs else None,
 )
 START_TIME = time.time()
 
