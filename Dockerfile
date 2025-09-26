@@ -52,5 +52,10 @@ EXPOSE 8000
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-# Run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Use Gunicorn entrypoint by default (production/staging)
+# Dev compose overrides this with --reload.
+COPY scripts/start.sh /app/scripts/start.sh
+COPY gunicorn_conf.py /app/gunicorn_conf.py
+RUN chmod +x /app/scripts/start.sh
+
+CMD ["/app/scripts/start.sh"]
