@@ -18,6 +18,11 @@ class PDFAnalyzer:
         'stans', 'Stans', 'STANS',  # Dutch for dieline
         'DieCut', 'diecut', 'DIECUT', 'Die Cut', 'die cut', 'DIE CUT'
     ]
+
+    DIELINE_LAYER_KEYWORDS = {
+        value.replace(' ', '').replace('_', '').lower()
+        for value in TARGET_SPOT_COLORS
+    }
     
     def __init__(self):
         self.doc = None
@@ -70,19 +75,21 @@ class PDFAnalyzer:
             
             # Detect dielines and spot colors
             detected_dielines = self._detect_dielines(first_page)
+            layer_report = self._collect_layered_dielines(first_page)
             spot_colors = self._extract_spot_colors()
-            
+
             # Check if any target colors are present
             has_cutcontour = any(
                 self._is_target_color(color) for color in spot_colors
             )
-            
+
             return {
                 "pdf_size": pdf_size,
                 "page_count": len(self.doc),
                 "mediabox": mediabox,
                 "trimbox": trimbox,
                 "detected_dielines": detected_dielines,
+                "dieline_layers": layer_report,
                 "spot_colors": spot_colors,
                 "has_cutcontour": has_cutcontour
             }
@@ -181,7 +188,7 @@ class PDFAnalyzer:
         # Combine results with stans dielines first
         all_dielines = stans_dielines + dielines + cut_marks
         return all_dielines
-        
+
     def _classify_dieline(self, bbox, path_width, path_height, trimbox_area, trimbox_width, trimbox_height):
         """Classify a dieline as stans dieline, cut mark, or other"""
         
@@ -216,6 +223,70 @@ class PDFAnalyzer:
             return 'stans_dieline'
             
         return 'other_dieline'
+
+    def _collect_layered_dielines(self, page) -> Dict[str, Any]:
+        report = {
+            'segments': [],
+            'layer_mismatch': False,
+        }
+
+        try:
+            drawings = page.get_cdrawings()
+        except Exception as exc:  # pragma: no cover - diagnostic
+            print(f"Unable to inspect drawings: {exc}")
+            return report
+
+        layer_to_paths: Dict[str, List[Dict[str, Any]]] = {}
+        canonical_layers: Set[str] = set()
+        raw_layers: Set[str] = set()
+
+        for drawing in drawings:
+            if drawing.get('type', '').lower() != 's':
+                continue
+
+            layer_name = drawing.get('layer') or 'unnamed'
+            color = drawing.get('color')
+            width = drawing.get('width')
+            bbox = drawing.get('rect')
+
+            segment = {
+                'layer': layer_name,
+                'stroke_color': color,
+                'line_width': round(width * self.POINTS_TO_MM, 3) if width else None,
+                'bounding_box': {
+                    'x0': round(bbox[0] * self.POINTS_TO_MM, 2),
+                    'y0': round(bbox[1] * self.POINTS_TO_MM, 2),
+                    'x1': round(bbox[2] * self.POINTS_TO_MM, 2),
+                    'y1': round(bbox[3] * self.POINTS_TO_MM, 2),
+                } if bbox else None,
+            }
+
+            report['segments'].append(segment)
+            layer_to_paths.setdefault(layer_name, []).append(segment)
+            canonical_layers.add(self._canonical_layer_name(layer_name))
+            raw_layers.add(layer_name)
+
+        # Flag if dieline-style layers are spread across multiple entries
+        canon_without_other = {name for name in canonical_layers if name != 'other'}
+        if len(canon_without_other) > 1:
+            report['layer_mismatch'] = True
+
+        # If we have both a named dieline layer and an unnamed/other layer, flag mismatch
+        if canon_without_other and 'other' in canonical_layers:
+            report['layer_mismatch'] = True
+
+        # Fallback: multiple raw layer names for dieline strokes is also a mismatch
+        if len(raw_layers) > 1:
+            report['layer_mismatch'] = True
+
+        return report
+
+    def _canonical_layer_name(self, layer_name: str) -> str:
+        cleaned = layer_name.replace(' ', '').replace('_', '').lower()
+        for keyword in self.DIELINE_LAYER_KEYWORDS:
+            if keyword in cleaned:
+                return keyword
+        return 'other'
         
     def _extract_spot_colors(self) -> List[str]:
         """Extract spot colors from the PDF"""

@@ -5,8 +5,11 @@ from ..models.schemas import PDFJobConfig, ShapeType
 from .pdf_analyzer import PDFAnalyzer
 from .shape_generators import ShapeGenerator
 from ..utils.spot_color_handler import SpotColorHandler
+from ..utils.spot_color_renamer import SpotColorRenamer
 from ..utils.pdf_utils import PDFUtils
 from ..utils.universal_dieline_remover import UniversalDielineRemover
+from ..utils.stans_compound_path_converter import StansCompoundPathConverter
+from ..utils.pymupdf_compound_path_tool import PyMuPDFCompoundPathTool
 from ..utils.winding_router import route_by_winding, route_by_winding_str
 
 
@@ -20,8 +23,11 @@ class PDFProcessor:
         self.analyzer = PDFAnalyzer()
         self.shape_generator = ShapeGenerator()
         self.spot_color_handler = SpotColorHandler()
+        self.spot_color_renamer = SpotColorRenamer()
         self.pdf_utils = PDFUtils()
         self.dieline_remover = UniversalDielineRemover()
+        self.compound_converter = StansCompoundPathConverter()
+        self.pymupdf_compound_tool = PyMuPDFCompoundPathTool()
         
     def process_pdf(self, pdf_path: str, job_config: PDFJobConfig) -> Dict[str, Any]:
         """
@@ -116,24 +122,59 @@ class PDFProcessor:
         output_path = temp_file.name
         temp_file.close()
         
-        # Check if PDF has existing dieline
-        if not analysis.get('has_cutcontour'):
-            # If no dieline found, just copy the original
+        rename_temp = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
+        rename_temp_path = rename_temp.name
+        rename_temp.close()
+
+        rename_success = self.spot_color_renamer.rename_cutcontour_to_stans(
+            pdf_path,
+            rename_temp_path,
+            job_config.spot_color_name
+        )
+
+        if not rename_success:
             import shutil
-            shutil.copy2(pdf_path, output_path)
-        else:
-            # Rename spot color to the specified name
-            success = self.spot_color_handler.rename_spot_color(
-                pdf_path, output_path, job_config.spot_color_name
+            shutil.copy2(pdf_path, rename_temp_path)
+
+        compound_temp = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
+        compound_temp_path = compound_temp.name
+        compound_temp.close()
+
+        compound_result = self.compound_converter.ensure_compound_paths(
+            rename_temp_path,
+            compound_temp_path
+        )
+
+        source_path = compound_temp_path if compound_result.get('success') else rename_temp_path
+
+        # Final pass to ensure the spot color resource name matches exactly
+        success = self.spot_color_handler.rename_spot_color(
+            source_path,
+            output_path,
+            job_config.spot_color_name
+        )
+
+        if success:
+            # Update spot color properties (ensure 100% magenta, overprint)
+            self.spot_color_handler.update_spot_color_properties(
+                output_path,
+                output_path,
+                job_config.spot_color_name,
+                job_config.line_thickness
             )
-            
-            if success:
-                # Update spot color properties (ensure 100% magenta, overprint)
-                self.spot_color_handler.update_spot_color_properties(
-                    output_path, output_path,
-                    job_config.spot_color_name,
-                    job_config.line_thickness
-                )
+        else:
+            import shutil
+            shutil.copy2(source_path, output_path)
+
+        # Final PyMuPDF compound-path normalization (also enforces stans/magenta/0.5pt)
+        self.pymupdf_compound_tool.process(output_path, output_path)
+
+        for temp_path in (rename_temp_path, compound_temp_path):
+            try:
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
+            except Exception:
+                pass
                 
         return output_path
         
@@ -190,14 +231,17 @@ class PDFProcessor:
         temp_output.close()
         
         success = self.pdf_utils.merge_pdfs(clean_path, dieline_path, output_path)
-        
+
         # Clean up temporary files
         try:
             os.unlink(clean_path)
             os.unlink(dieline_path)
         except:
             pass
-            
+        
+        # Normalize dieline compound path and enforce stroke properties
+        self.pymupdf_compound_tool.process(output_path, output_path)
+
         return output_path
         
     def process_batch(self, pdf_paths: list, job_configs: list) -> list:
