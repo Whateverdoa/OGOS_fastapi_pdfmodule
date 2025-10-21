@@ -158,3 +158,37 @@ class PDFUtils:
         except Exception as e:
             print(f"Error getting PDF info: {e}")
             return {}
+
+    @staticmethod
+    def rotate_pdf(input_path: str, output_path: str, degrees: int) -> bool:
+        """
+        Rotate the first page of a PDF by the specified degrees (0, 90, 180, 270).
+
+        Args:
+            input_path: Path to the input PDF
+            output_path: Path to write the rotated PDF
+            degrees: Rotation angle (must be one of 0, 90, 180, 270)
+
+        Returns:
+            True if success, False otherwise
+        """
+        try:
+            if degrees % 90 != 0:
+                degrees = 0
+            doc = fitz.open(input_path)
+            if len(doc) == 0:
+                doc.close()
+                return False
+            normalized_degrees = degrees % 360
+            if normalized_degrees == 0:
+                doc.save(output_path)
+                doc.close()
+                return True
+            for page in doc:
+                page.set_rotation((page.rotation + normalized_degrees) % 360)
+            doc.save(output_path)
+            doc.close()
+            return True
+        except Exception as e:
+            print(f"Error rotating PDF: {e}")
+            return False
