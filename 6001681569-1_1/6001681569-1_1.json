@@ -1,0 +1,41 @@
+{
+    "Description": "1000 Stickers op rol 25 x 25 mm 55 g m2",
+    "ReferenceAtCustomer": "6001681569-1",
+    "Delivery": "2025-04-22",
+    "Shipment_method": "UPS_STANDARD",
+    "OrderQuantity": 1000,
+    "Quantity_per_roll": 0,
+    "DispenserQuantity": 0,
+    "Core": "45_mm",
+    "UnitPrice": 28.39,
+    "SupplierId": "Print.com",
+    "Name": "labels-on-roll",
+    "Street": "rue des batignolles",
+    "Country": "FR",
+    "PostalCode": "75017",
+    "City": "Paris",
+    "Contacts": [
+        {
+            "LastName": "Beliard",
+            "FirstName": "Philomene",
+            "Initials": "",
+            "Title:": "Mr./Mevr",
+            "Email": "no@email.com",
+            "Phone": "+33987752577"
+        }
+    ],
+    "Width": "25",
+    "Height": "25",
+    "Shape": "Irregular",
+    "Winding": 2,
+    "Radius": 0,
+    "Premium_White": "N",
+    "Substrate": "55gr_pp_white_gloss",
+    "Adhesive": "permanent",
+    "Delivery_Addresses": 1,
+    "numberOfDesigns": "1-1",
+    "LineComment1": "6001681569-1",
+    "Finish": "single_sided_vernis_gloss",
+    "CalculationID": 20003,
+    "AddressID": 440827
+}

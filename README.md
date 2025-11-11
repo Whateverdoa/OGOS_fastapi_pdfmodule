@@ -14,6 +14,7 @@ A FastAPI service for processing PDF files with dielines/stanslines. The service
   - For circles/rectangles: Remove existing dieline and add new one
   - For custom shapes: Keep existing shape but rename spot color
 - **Standards Compliant**: Creates dielines with 0.5pt 100% magenta lines with overprint
+- **Layer Diagnostics**: Surfaces `dieline_layers` metadata and mismatch flags for QA tooling
 
 ## Installation
 
@@ -59,6 +60,17 @@ Analyzes a PDF file and returns information about its dimensions, trimbox, and d
   "trimbox": {"x0": 0, "y0": 0, "x1": 595, "y1": 842},
   "mediabox": {"x0": 0, "y0": 0, "x1": 595, "y1": 842},
   "detected_dielines": [...],
+  "dieline_layers": {
+    "layer_mismatch": false,
+    "segments": [
+      {
+        "layer": "OC1 /stans",
+        "stroke_color": [0.0, 1.0, 0.0, 0.0],
+        "line_width": 0.5,
+        "bounding_box": {"x0": 5.0, "y0": 5.0, "x1": 90.0, "y1": 90.0}
+      }
+    ]
+  },
   "spot_colors": ["CutContour"],
   "has_cutcontour": true
 }
@@ -88,12 +100,18 @@ Processes a PDF file with dieline modifications based on job configuration.
 ```
 
 **Response:** 
-- Processed PDF file download
+- Processed PDF file download by default
 
 Response headers include:
 - `X-Processing-Reference`
 - `X-Processing-Shape`
 - `X-Winding-Route` (if `winding` supplied)
+- `X-Dieline-Layer-Mismatch` (true/false when analyzer detected split dielines)
+- `X-Dieline-Segment-Count` (number of raw dieline segments found)
+
+Set `return_json=true` (query parameter) when you prefer a JSON payload. The body then matches `PDFProcessingResponse`, including:
+- `analysis.dieline_layers` identical to `/api/pdf/analyze`
+- `processed_pdf_base64` containing the processed PDF (base64 encoded)
 
 Winding route mapping is automatically computed from `winding` using:
 1 → 180, 2 → 0, 3 → 90, 4 → 270, 5/6/7/8 → 0.
@@ -164,6 +182,17 @@ Example:
 curl -s http://localhost:8000/api/pdf/route-by-winding/3
 # {"winding_value":"3","route":90}
 ```
+
+## CLI Utilities
+
+- `python -m tools.dump_dieline path/to.pdf` &mdash; print `dieline_layers` diagnostics (use `--json` for raw JSON output).
+- `python -m tools.pymupdf_compound_path input.pdf output.pdf` &mdash; normalise `/stans` compound paths via PyMuPDF.
+
+## Further Reading
+
+- [Compound path integration spec](docs/custom_shape_compound_path_spec.md) documents the PyMuPDF workflow and analyzer expectations.
+- [PyMuPDF workflow guide](docs/explained_steps-pymupdf.md) breaks down how the analyzer, renamers, and compound-path tool interact.
+- [Dieline colour/layer diagnostics](docs/pdf_dieline_color_layers.md) explains how to interpret the `dieline_layers` payload and related headers.
 
 ## Configuration
 

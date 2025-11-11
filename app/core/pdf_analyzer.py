@@ -1,6 +1,6 @@
 import fitz  # PyMuPDF
 from pypdf import PdfReader
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional, Tuple, Set
 import os
 
 
@@ -236,7 +236,6 @@ class PDFAnalyzer:
             print(f"Unable to inspect drawings: {exc}")
             return report
 
-        layer_to_paths: Dict[str, List[Dict[str, Any]]] = {}
         canonical_layers: Set[str] = set()
         raw_layers: Set[str] = set()
 
@@ -251,7 +250,7 @@ class PDFAnalyzer:
 
             segment = {
                 'layer': layer_name,
-                'stroke_color': color,
+                'stroke_color': self._normalize_color_components(color),
                 'line_width': round(width * self.POINTS_TO_MM, 3) if width else None,
                 'bounding_box': {
                     'x0': round(bbox[0] * self.POINTS_TO_MM, 2),
@@ -262,7 +261,6 @@ class PDFAnalyzer:
             }
 
             report['segments'].append(segment)
-            layer_to_paths.setdefault(layer_name, []).append(segment)
             canonical_layers.add(self._canonical_layer_name(layer_name))
             raw_layers.add(layer_name)
 
@@ -287,6 +285,18 @@ class PDFAnalyzer:
             if keyword in cleaned:
                 return keyword
         return 'other'
+
+    def _normalize_color_components(self, color: Any) -> Optional[List[float]]:
+        if color is None:
+            return None
+
+        if isinstance(color, (list, tuple)):
+            return [round(float(component), 4) for component in color]
+
+        try:
+            return [round(float(color), 4)]
+        except (TypeError, ValueError):
+            return None
         
     def _extract_spot_colors(self) -> List[str]:
         """Extract spot colors from the PDF"""

@@ -41,8 +41,23 @@ class PDFProcessor:
             Dictionary with processing results
         """
         try:
+            # Optional rotation before any analysis/processing
+            working_pdf_path = pdf_path
+            if getattr(job_config, 'rotate_degrees', None) is not None:
+                try:
+                    deg = int(job_config.rotate_degrees)
+                except Exception:
+                    deg = 0
+                if deg in (0, 90, 180, 270):
+                    temp_rot = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
+                    temp_rot_path = temp_rot.name
+                    temp_rot.close()
+                    rotated = self.pdf_utils.rotate_pdf(pdf_path, temp_rot_path, deg)
+                    if rotated:
+                        working_pdf_path = temp_rot_path
+
             # Step 1: Analyze the PDF
-            analysis = self.analyzer.analyze_pdf(pdf_path)
+            analysis = self.analyzer.analyze_pdf(working_pdf_path)
             
             # Get the appropriate box coordinates (trimbox or mediabox)
             # Convert back to points for shape generation
@@ -70,12 +85,12 @@ class PDFProcessor:
             if job_config.shape == ShapeType.custom:
                 # For custom shapes, keep the existing shape but rename spot color
                 output_path = self._process_custom_shape(
-                    pdf_path, job_config, analysis
+                    working_pdf_path, job_config, analysis
                 )
             else:
                 # For circle and rectangle, remove old dieline and add new one
                 output_path = self._process_standard_shape(
-                    pdf_path, job_config, analysis, box_coords
+                    working_pdf_path, job_config, analysis, box_coords
                 )
                 
             # Step 3: Prepare response

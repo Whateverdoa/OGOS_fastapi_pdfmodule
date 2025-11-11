@@ -4,7 +4,9 @@ services:
     build: .
     image: ogos-pdf-module:latest
     ports:
-      - "8080:8080"
+      - "8083:8080"
+    volumes:
+      - ./zip_output:/app/zip_output
     environment:
       # Tune workers if desired
       - UVICORN_WORKERS=2
