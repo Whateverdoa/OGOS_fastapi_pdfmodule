@@ -621,33 +621,36 @@ async def process_zip(
                     job_config_obj = PDFJobConfig(**job_config_data)
 
                     # Prepare normalized JSON for reseller: set winding=2 and applied rotation if any
-                    try:
-                        normalized = dict(config_dict)
-                        # Set winding to 2 using existing key if present
-                        if "Winding" in normalized:
-                            normalized["Winding"] = 2
-                        elif "winding" in normalized:
-                            normalized["winding"] = 2
-                        else:
-                            normalized["Winding"] = 2
-                        # Set rotation if applied and not explicitly provided
-                        if applied_rotation is not None:
-                            if not any(k in config_dict for k in ("Rotate", "rotate", "Orientation")):
-                                normalized["Rotate"] = applied_rotation
-                        if swap_dimensions:
-                            swapped_width = job_config_data["width"]
-                            swapped_height = job_config_data["height"]
-                            if "Width" in normalized:
-                                normalized["Width"] = swapped_width
-                            if "width" in normalized:
-                                normalized["width"] = swapped_width
-                            if "Height" in normalized:
-                                normalized["Height"] = swapped_height
-                            if "height" in normalized:
-                                normalized["height"] = swapped_height
-                        normalized_json_bytes = json.dumps(normalized, ensure_ascii=False, indent=2).encode("utf-8")
-                    except Exception:
-                        normalized_json_bytes = None
+                    normalized_json_bytes = None
+                    if reseller_detected:
+                        try:
+                            normalized = dict(config_dict)
+                            # Set winding to 2 using existing key if present
+                            if "Winding" in normalized:
+                                normalized["Winding"] = 2
+                            elif "winding" in normalized:
+                                normalized["winding"] = 2
+                            else:
+                                normalized["Winding"] = 2
+                            # Set rotation if applied and not explicitly provided
+                            if applied_rotation is not None:
+                                if not any(k in config_dict for k in ("Rotate", "rotate", "Orientation")):
+                                    normalized["Rotate"] = applied_rotation
+                            if swap_dimensions:
+                                swapped_width = job_config_data["width"]
+                                swapped_height = job_config_data["height"]
+                                if "Width" in normalized:
+                                    normalized["Width"] = swapped_width
+                                if "width" in normalized:
+                                    normalized["width"] = swapped_width
+                                if "Height" in normalized:
+                                    normalized["Height"] = swapped_height
+                                if "height" in normalized:
+                                    normalized["height"] = swapped_height
+                            normalized_json_bytes = json.dumps(normalized, ensure_ascii=False, indent=2).encode("utf-8")
+                        except Exception as e:
+                            print(f"Warning: Failed to create normalized JSON for reseller: {e}")
+                            normalized_json_bytes = None
                 except Exception:
                     summary_rows.append([
                         pdf_path.name,

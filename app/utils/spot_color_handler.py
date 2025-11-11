@@ -196,14 +196,8 @@ class SpotColorHandler:
         extgstate = res_obj.get('/ExtGState')
         if extgstate:
             extgstate_obj = self._resolve(extgstate)
-            for gs_name, gs_value in list(extgstate_obj.items()):
-                gs_dict = self._resolve(gs_value)
-                if isinstance(gs_dict, DictionaryObject):
-                    gs_dict[NameObject('/Type')] = NameObject('/ExtGState')
-                    gs_dict[NameObject('/OP')] = BooleanObject(True)
-                    gs_dict[NameObject('/op')] = BooleanObject(True)
-                    gs_dict[NameObject('/OPM')] = NumberObject(1)
-
+            # Only create the dieline-specific overprint ExtGState, don't modify existing ones
+            # Overprint will be applied selectively via content stream rewriting for dieline strokes only
             overprint_key = NameObject(self.OVERPRINT_STATE_NAME)
             if overprint_key not in extgstate_obj:
                 extgstate_obj[overprint_key] = self._build_overprint_extgstate()
