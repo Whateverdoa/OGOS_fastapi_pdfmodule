@@ -1,0 +1,42 @@
+{
+    "Description": "labels_on_roll",
+    "ReferenceAtCustomer": "5355794-8353431",
+    "Delivery": "2025-07-24",
+    "Shipment_method": "UPS-UPS_STANDARD",
+    "OrderQuantity": 300,
+    "Quantity_per_roll": "",
+    "DispenserQuantity": "",
+    "Core": "40",
+    "UnitPrice": 62.53333333333333,
+    "SupplierId": "7d9ace2e-fa66-48ac-a142-7b3f68eb9f8c",
+    "Name": "labels_on_roll",
+    "Street": "RUE DU VIGNEAU DE SOUCHE 12",
+    "Country": "FR",
+    "PostalCode": "79000",
+    "City": "NIORT",
+    "Contacts": [
+        {
+            "LastName": "TENDRON",
+            "FirstName": "Mickael",
+            "Initials": "",
+            "Title": "",
+            "PhoneNumber": "0546942185",
+            "FaxNumber": "",
+            "GSMNumber": "",
+            "Email": "suppliers@helloprint.com",
+            "Function": ""
+        }
+    ],
+    "Width": 60,
+    "Height": 40,
+    "Shape": "rectangle",
+    "Winding": 2,
+    "Radius": 2,
+    "Premium_White": "N",
+    "Substrate": "90PVC",
+    "Adhesive": "permanent",
+    "LineComment1": "Jobsheet made for helloprint v2",
+    "Colors": "CMYK",
+    "Delivery_Addresses": 1,
+    "numberOfDesigns": "1-1"
+}

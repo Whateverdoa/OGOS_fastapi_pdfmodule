@@ -1,0 +1,30 @@
+name: pdf-dieline-processor-staging
+services:
+  - name: web
+    dockerfile_path: Dockerfile.prod
+    http_port: 8000
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    routes:
+      - path: /
+    envs:
+      - key: ENVIRONMENT
+        value: staging
+      - key: API_TITLE
+        value: PDF Dieline Processor (Staging)
+      - key: API_VERSION
+        value: 1.0.0-rc
+      - key: API_DESCRIPTION
+        value: Staging environment for PDF processing
+      - key: ENABLE_DOCS
+        value: "true"
+      - key: LOG_LEVEL
+        value: DEBUG
+      - key: MAX_FILE_SIZE
+        value: "104857600"  # 100MB
+      - key: CORS_ORIGINS
+        value: "[\"*\"]"
+    health_check:
+      http_path: /healthz
+      initial_delay_seconds: 30
+

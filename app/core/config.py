@@ -5,6 +5,10 @@ from typing import Optional
 class Settings(BaseSettings):
     """Application settings"""
     
+    # Environment
+    environment: str = "dev"  # dev | staging | prod
+    enable_docs: bool = True
+    
     # API Settings
     api_title: str = "PDF Dieline Processor"
     api_version: str = "1.0.0"

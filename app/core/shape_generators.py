@@ -4,6 +4,8 @@ from reportlab.lib.colors import CMYKColorSep
 from typing import Dict, Tuple, Optional
 import os
 import tempfile
+from pypdf import PdfReader, PdfWriter
+from pypdf.generic import NameObject, DictionaryObject, NumberObject, BooleanObject
 
 
 class ShapeGenerator:
@@ -85,7 +87,10 @@ class ShapeGenerator:
         
         # Save PDF
         c.save()
-        
+
+        # Ensure overprint is enabled in the generated PDF
+        self._apply_overprint_to_pdf(temp_path)
+
         return temp_path
         
     def create_rectangle_dieline(
@@ -164,7 +169,10 @@ class ShapeGenerator:
         
         # Save PDF
         c.save()
-        
+
+        # Ensure overprint is enabled in the generated PDF
+        self._apply_overprint_to_pdf(temp_path)
+
         return temp_path
         
     def create_stepped_dieline(
@@ -261,5 +269,72 @@ class ShapeGenerator:
                     c.roundRect(x, y, width_pt, height_pt, radius_pt, stroke=1, fill=0)
                     
         c.save()
-        
+        # Ensure overprint is enabled in the generated PDF
+        self._apply_overprint_to_pdf(temp_path)
         return temp_path
+
+    def _apply_overprint_to_pdf(self, pdf_path: str):
+        """
+        Add an ExtGState with stroke/fill overprint enabled and apply it
+        to the page content by inserting a 'gs' at the start of the stream.
+        """
+        try:
+            reader = PdfReader(pdf_path)
+            writer = PdfWriter()
+
+            page = reader.pages[0]
+            resources = page.get('/Resources')
+            if resources is None:
+                resources = DictionaryObject()
+                page[NameObject('/Resources')] = resources
+            elif hasattr(resources, 'get_object'):
+                resources = resources.get_object()
+
+            # Prepare ExtGState dictionary
+            extg = resources.get('/ExtGState')
+            if extg is None:
+                extg = DictionaryObject()
+                resources[NameObject('/ExtGState')] = extg
+            elif hasattr(extg, 'get_object'):
+                extg = extg.get_object()
+
+            gs_dict = DictionaryObject()
+            gs_dict.update({
+                NameObject('/Type'): NameObject('/ExtGState'),
+                NameObject('/OP'): BooleanObject(True),  # stroke overprint
+                NameObject('/op'): BooleanObject(True),  # fill overprint
+                NameObject('/OPM'): NumberObject(1),
+            })
+
+            gs_ref = writer._add_object(gs_dict)
+            extg[NameObject('/GSop')] = gs_ref
+
+            # Insert '/GSop gs' at start of the first content stream
+            contents = page.get('/Contents')
+            if hasattr(contents, 'get_object'):
+                contents = contents.get_object()
+
+            def inject(stream_obj):
+                if hasattr(stream_obj, 'get_object'):
+                    stream_obj = stream_obj.get_object()
+                if hasattr(stream_obj, 'get_data') and hasattr(stream_obj, 'set_data'):
+                    try:
+                        data = stream_obj.get_data()
+                    except Exception:
+                        data = b''
+                    patched = b"/GSop gs\n" + data
+                    stream_obj.set_data(patched)
+
+            if contents is not None:
+                if isinstance(contents, list):
+                    if contents:
+                        inject(contents[0])
+                else:
+                    inject(contents)
+
+            writer.add_page(page)
+            with open(pdf_path, 'wb') as f:
+                writer.write(f)
+        except Exception:
+            # Non-fatal: leave PDF as-is
+            pass

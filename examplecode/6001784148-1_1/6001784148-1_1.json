@@ -1,0 +1,39 @@
+{
+    "Description": "1000 Stickers op rol Rond O 130 mm 80 g",
+    "ReferenceAtCustomer": "6001784148-1",
+    "Delivery": "2025-07-24",
+    "Shipment_method": "DPD_B2C",
+    "OrderQuantity": 1000,
+    "Quantity_per_roll": 0,
+    "DispenserQuantity": 0,
+    "Core": "76_mm",
+    "UnitPrice": 75.91,
+    "SupplierId": "Print.com",
+    "Name": "labels-on-roll",
+    "Street": "Boschstra\u00dfe",
+    "Country": "DE",
+    "PostalCode": "53359",
+    "City": "Rheinbach",
+    "Contacts": [
+        {
+            "LastName": "Weil",
+            "FirstName": "Sebastian",
+            "Initials": "",
+            "Title:": "Mr./Mevr",
+            "Email": "sebastian@slate-lite.com",
+            "Phone": "4915730218865"
+        }
+    ],
+    "Width": "130",
+    "Height": "130",
+    "Shape": "Circle",
+    "Winding": 2,
+    "Radius": 0,
+    "Premium_White": "N",
+    "Substrate": "80gr_paper_gloss",
+    "Adhesive": "permanent",
+    "Delivery_Addresses": 1,
+    "numberOfDesigns": "1-1",
+    "LineComment1": "6001784148-1",
+    "Finish": "single_sided_vernis_gloss"
+}

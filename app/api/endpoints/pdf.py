@@ -1,5 +1,4 @@
 import base64
-
 from fastapi import APIRouter, File, UploadFile, HTTPException, Form, Query
 from fastapi.responses import FileResponse, JSONResponse
 from typing import Optional, Dict
@@ -12,12 +11,31 @@ import tempfile
 import shutil
 from ...models.schemas import (
     PDFJobConfig, PDFAnalysisResult, PDFProcessingResponse,
-    ErrorResponse, ShapeType, WindingRouteResponse
+    ErrorResponse, ShapeType, WindingRouteResponse, FontMode
 )
+
+# Helper: normalize incoming shape strings (synonyms -> enum values)
+def _normalize_shape(value: str | None) -> str | None:
+    if value is None:
+        return None
+    s = str(value).strip().lower()
+    mapping = {
+        # expected
+        'circle': 'circle',
+        'rectangle': 'rectangle',
+        'custom': 'custom',
+        # synonyms
+        'irregular': 'custom',
+        'square': 'rectangle',
+        'rect': 'rectangle',
+        'oval': 'circle',
+        'ellipse': 'circle',
+    }
+    return mapping.get(s, s)
 from ...core.pdf_processor import PDFProcessor
 from ...core.pdf_analyzer import PDFAnalyzer
 from ...core.config import settings
-from ...utils.winding_router import route_by_winding_str
+from ...utils.winding_router import route_by_winding, route_by_winding_str
 
 
 router = APIRouter(prefix="/api/pdf", tags=["pdf"])
@@ -120,10 +138,15 @@ async def analyze_pdf(
 async def process_pdf(
     pdf_file: UploadFile = File(...),
     job_config: str = Form(...),
+<<<<<<< HEAD
     return_json: bool = Query(
         False,
         description="Return a JSON payload (with base64 PDF) instead of a file download"
     )
+=======
+    fonts: str | None = Query(None, description="Font handling override: embed or outline"),
+    remove_marks: bool | None = Query(None, description="Remove crop/registration marks")
+>>>>>>> origin/feature/rotation-fonts-marks
 ):
     """
     Process a PDF file with dieline modifications based on the job configuration
@@ -135,12 +158,24 @@ async def process_pdf(
     # Parse job configuration
     try:
         config_dict = json.loads(job_config)
+        # Normalize shape synonyms before validation
+        if 'shape' in config_dict:
+            config_dict['shape'] = _normalize_shape(config_dict.get('shape'))
         job_config_obj = PDFJobConfig(**config_dict)
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=400, detail=f"Invalid JSON in job_config: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid job configuration: {str(e)}")
         
+    # Optional fonts override via query param
+    if fonts is not None:
+        try:
+            job_config_obj.fonts = FontMode(fonts)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid fonts value; use 'embed' or 'outline'")
+    if remove_marks is not None:
+        job_config_obj.remove_marks = bool(remove_marks)
+
     # Validate file type
     if not pdf_file.filename.lower().endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
@@ -164,12 +199,18 @@ async def process_pdf(
             # Create a proper filename
             base_name = os.path.splitext(pdf_file.filename)[0]
             output_filename = f"{base_name}_processed_{job_config_obj.reference}.pdf"
+<<<<<<< HEAD
 
             # Prepare headers
+=======
+            
+            # Calculate rotation angle from winding value
+>>>>>>> origin/feature/rotation-fonts-marks
             headers = {
                 'X-Processing-Reference': job_config_obj.reference,
                 'X-Processing-Shape': job_config_obj.shape
             }
+<<<<<<< HEAD
             winding_route = (
                 result.get('processing_details', {}).get('winding_route')
                 if isinstance(result.get('processing_details'), dict) else None
@@ -218,6 +259,21 @@ async def process_pdf(
 
                 return JSONResponse(content=payload.model_dump())
 
+=======
+            
+            # Add winding information if available
+            if hasattr(job_config_obj, 'winding') and job_config_obj.winding is not None:
+                try:
+                    rotation_angle = route_by_winding(job_config_obj.winding)
+                    headers['X-Winding-Value'] = str(job_config_obj.winding)
+                    headers['X-Rotation-Angle'] = str(rotation_angle)
+                    headers['X-Needs-Rotation'] = 'true' if rotation_angle != 0 else 'false'
+                except ValueError:
+                    # Invalid winding value, add header but no rotation info
+                    headers['X-Winding-Value'] = str(job_config_obj.winding)
+                    headers['X-Winding-Error'] = 'Invalid winding value'
+            
+>>>>>>> origin/feature/rotation-fonts-marks
             return FileResponse(
                 output_path,
                 media_type='application/pdf',
@@ -262,10 +318,15 @@ async def get_route_by_winding(winding_value: str):
 async def process_pdf_with_json_file(
     pdf_file: UploadFile = File(...),
     json_file: UploadFile = File(...),
+<<<<<<< HEAD
     return_json: bool = Query(
         False,
         description="Return a JSON payload (with base64 PDF) instead of a file download"
     )
+=======
+    fonts: str | None = Query(None, description="Font handling override: embed or outline"),
+    remove_marks: bool | None = Query(None, description="Remove crop/registration marks")
+>>>>>>> origin/feature/rotation-fonts-marks
 ):
     """
     Process a PDF file with a separate JSON configuration file
@@ -283,10 +344,16 @@ async def process_pdf_with_json_file(
         config_dict = json.loads(json_content)
         
         # Map JSON fields to PDFJobConfig
+<<<<<<< HEAD
         # Handle both uppercase and lowercase shape values
         shape_value = config_dict.get('Shape', config_dict.get('shape', '')).lower()
         if shape_value in ('irregular', 'custom_shape', 'freeform'):
             shape_value = ShapeType.custom.value
+=======
+        # Handle both uppercase and lowercase shape values and synonyms
+        raw_shape = config_dict.get('Shape', config_dict.get('shape', ''))
+        shape_value = _normalize_shape(raw_shape)
+>>>>>>> origin/feature/rotation-fonts-marks
         
         # Extract optional explicit rotation
         rotate_val_raw = config_dict.get('Rotate', config_dict.get('rotate', config_dict.get('Orientation')))
@@ -308,6 +375,11 @@ async def process_pdf_with_json_file(
             'substrate': config_dict.get('Substrate', config_dict.get('substrate')),
             'adhesive': config_dict.get('Adhesive', config_dict.get('adhesive')),
             'colors': config_dict.get('Colors', config_dict.get('colors')),
+<<<<<<< HEAD
+=======
+            'fonts': config_dict.get('Fonts', config_dict.get('fonts', 'embed')),
+            'remove_marks': config_dict.get('RemoveMarks', config_dict.get('remove_marks', config_dict.get('removeMarks', False)))
+>>>>>>> origin/feature/rotation-fonts-marks
         }
 
         # Reseller detection from filenames or JSON fields
@@ -344,6 +416,15 @@ async def process_pdf_with_json_file(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error parsing configuration: {str(e)}")
         
+    # Optional fonts override via query param
+    if fonts is not None:
+        try:
+            job_config_obj.fonts = FontMode(fonts)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid fonts value; use 'embed' or 'outline'")
+    if remove_marks is not None:
+        job_config_obj.remove_marks = bool(remove_marks)
+
     # Save PDF temporarily and process
     temp_input_path = None
     try:
@@ -364,12 +445,18 @@ async def process_pdf_with_json_file(
             # Create a proper filename
             base_name = os.path.splitext(pdf_file.filename)[0]
             output_filename = f"{base_name}_processed_{job_config_obj.reference}.pdf"
+<<<<<<< HEAD
 
             # Prepare headers
+=======
+            
+            # Calculate rotation angle from winding value
+>>>>>>> origin/feature/rotation-fonts-marks
             headers = {
                 'X-Processing-Reference': job_config_obj.reference,
                 'X-Processing-Shape': job_config_obj.shape
             }
+<<<<<<< HEAD
             winding_route = (
                 result.get('processing_details', {}).get('winding_route')
                 if isinstance(result.get('processing_details'), dict) else None
@@ -418,6 +505,21 @@ async def process_pdf_with_json_file(
 
                 return JSONResponse(content=payload.model_dump())
 
+=======
+            
+            # Add winding information if available
+            if hasattr(job_config_obj, 'winding') and job_config_obj.winding is not None:
+                try:
+                    rotation_angle = route_by_winding(job_config_obj.winding)
+                    headers['X-Winding-Value'] = str(job_config_obj.winding)
+                    headers['X-Rotation-Angle'] = str(rotation_angle)
+                    headers['X-Needs-Rotation'] = 'true' if rotation_angle != 0 else 'false'
+                except ValueError:
+                    # Invalid winding value, add header but no rotation info
+                    headers['X-Winding-Value'] = str(job_config_obj.winding)
+                    headers['X-Winding-Error'] = 'Invalid winding value'
+            
+>>>>>>> origin/feature/rotation-fonts-marks
             return FileResponse(
                 output_path,
                 media_type='application/pdf',
@@ -442,6 +544,7 @@ async def process_pdf_with_json_file(
         # Clean up temporary input file
         if temp_input_path and os.path.exists(temp_input_path):
             os.unlink(temp_input_path)
+<<<<<<< HEAD
 
 
 @router.post("/process-zip")
@@ -779,3 +882,5 @@ async def process_zip(
                     shutil.rmtree(d, ignore_errors=True)
                 except OSError:
                     pass
+=======
+>>>>>>> origin/feature/rotation-fonts-marks

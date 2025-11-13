@@ -1,7 +1,7 @@
 import os
 import tempfile
 from typing import Dict, Any, Optional
-from ..models.schemas import PDFJobConfig, ShapeType
+from ..models.schemas import PDFJobConfig, ShapeType, FontMode
 from .pdf_analyzer import PDFAnalyzer
 from .shape_generators import ShapeGenerator
 from ..utils.spot_color_handler import SpotColorHandler
@@ -177,6 +177,7 @@ class PDFProcessor:
                 job_config.spot_color_name,
                 job_config.line_thickness
             )
+<<<<<<< HEAD
         else:
             import shutil
             shutil.copy2(source_path, output_path)
@@ -191,6 +192,62 @@ class PDFProcessor:
             except Exception:
                 pass
                 
+=======
+            
+            if success:
+                # Update spot color properties (ensure 100% magenta, overprint)
+                self.spot_color_handler.update_spot_color_properties(
+                    output_path, output_path,
+                    job_config.spot_color_name,
+                    job_config.line_thickness
+                )
+        # Optional: remove registration/crop marks (Separation/All)
+        if getattr(job_config, 'remove_marks', False):
+            temp_markless = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
+            markless_path = temp_markless.name
+            temp_markless.close()
+            mark_res = self.dieline_remover.remove_registration_marks(output_path, markless_path)
+            if mark_res.get('success'):
+                try:
+                    os.replace(markless_path, output_path)
+                except Exception:
+                    pass
+
+        # Optional: rotate artwork by winding if trimbox matches job size
+        try:
+            if getattr(job_config, 'winding', None) is not None:
+                angle = route_by_winding(job_config.winding)
+                # Compare trimbox to job dims (within tolerance)
+                tb = analysis.get('trimbox') or analysis.get('mediabox')
+                tw = abs(float(tb['x1']) - float(tb['x0'])) if tb else 0.0
+                th = abs(float(tb['y1']) - float(tb['y0'])) if tb else 0.0
+                tol = 1.0
+                dims_match = (abs(tw - float(job_config.width)) <= tol and abs(th - float(job_config.height)) <= tol)
+                if angle and angle % 360 != 0 and dims_match:
+                    temp_rot = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
+                    rot_path = temp_rot.name
+                    temp_rot.close()
+                    if self.pdf_utils.rotate_pdf(output_path, rot_path, angle):
+                        try:
+                            os.replace(rot_path, output_path)
+                        except Exception:
+                            pass
+        except Exception:
+            pass
+
+        # Best-effort: font handling per job config with fallback to outline
+        try:
+            if getattr(job_config, 'fonts', FontMode.embed) == FontMode.outline:
+                self.pdf_utils.outline_all_fonts(output_path)
+            else:
+                ok = self.pdf_utils.embed_all_fonts(output_path)
+                # If embedding failed or fonts still not embedded, fallback to outline
+                if (not ok) or self.pdf_utils.has_unembedded_fonts(output_path):
+                    self.pdf_utils.outline_all_fonts(output_path)
+        except Exception:
+            pass
+
+>>>>>>> origin/feature/rotation-fonts-marks
         return output_path
         
     def _process_standard_shape(
@@ -220,7 +277,42 @@ class PDFProcessor:
             # Just copy if no dielines present
             import shutil
             shutil.copy2(pdf_path, clean_path)
-            
+        
+        # Optional: remove registration/crop marks (Separation/All)
+        if getattr(job_config, 'remove_marks', False):
+            temp_markless = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
+            markless_path = temp_markless.name
+            temp_markless.close()
+            mark_res = self.dieline_remover.remove_registration_marks(clean_path, markless_path)
+            if mark_res.get('success'):
+                try:
+                    os.unlink(clean_path)
+                except Exception:
+                    pass
+                clean_path = markless_path
+
+        # Optional: rotate the base artwork by winding before overlay (if size matches job)
+        try:
+            if getattr(job_config, 'winding', None) is not None:
+                angle = route_by_winding(job_config.winding)
+                tb = analysis.get('trimbox') or analysis.get('mediabox')
+                tw = abs(float(tb['x1']) - float(tb['x0'])) if tb else 0.0
+                th = abs(float(tb['y1']) - float(tb['y0'])) if tb else 0.0
+                tol = 1.0
+                dims_match = (abs(tw - float(job_config.width)) <= tol and abs(th - float(job_config.height)) <= tol)
+                if angle and angle % 360 != 0 and dims_match:
+                    temp_rot = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
+                    rot_path = temp_rot.name
+                    temp_rot.close()
+                    if self.pdf_utils.rotate_pdf(clean_path, rot_path, angle):
+                        try:
+                            os.unlink(clean_path)
+                        except Exception:
+                            pass
+                        clean_path = rot_path
+        except Exception:
+            pass
+
         # Step 2: Generate new dieline shape
         if job_config.shape == ShapeType.circle:
             dieline_path = self.shape_generator.create_circle_dieline(
@@ -253,9 +345,44 @@ class PDFProcessor:
             os.unlink(dieline_path)
         except:
             pass
+<<<<<<< HEAD
         
         # Normalize dieline compound path and enforce stroke properties
         self.pymupdf_compound_tool.process(output_path, output_path)
+=======
+            
+        # Post-merge pruning: remove any leftover dieline spot colors except desired one
+        try:
+            from ..utils.universal_dieline_remover import UniversalDielineRemover
+            pruned_output = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False).name
+            UniversalDielineRemover().prune_unwanted_spot_colors(
+                output_path,
+                pruned_output,
+                allowed_names={job_config.spot_color_name}
+            )
+            # Replace output with pruned version
+            os.replace(pruned_output, output_path)
+        except Exception:
+            # Non-fatal: keep unpruned output
+            pass
+
+        # Ensure overprint is enabled for the new dieline spot
+        try:
+            self.pdf_utils.ensure_overprint_for_spot(output_path, job_config.spot_color_name)
+        except Exception:
+            pass
+
+        # Embed/Outline fonts in the final PDF (best-effort with fallback)
+        try:
+            if getattr(job_config, 'fonts', FontMode.embed) == FontMode.outline:
+                self.pdf_utils.outline_all_fonts(output_path)
+            else:
+                ok = self.pdf_utils.embed_all_fonts(output_path)
+                if (not ok) or self.pdf_utils.has_unembedded_fonts(output_path):
+                    self.pdf_utils.outline_all_fonts(output_path)
+        except Exception:
+            pass
+>>>>>>> origin/feature/rotation-fonts-marks
 
         return output_path
         

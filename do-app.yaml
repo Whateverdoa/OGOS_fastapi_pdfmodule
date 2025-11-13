@@ -1,19 +1,25 @@
-spec:
-  name: ogos-pdf-module
-  services:
-    - name: api
-      dockerfile_path: Dockerfile
-      http_port: 8080
-      instance_count: 1
-      instance_size_slug: basic-xxs
-      routes:
-        - path: /
-      envs:
-        # Example environment overrides; adjust or remove as needed
-        - key: LOG_LEVEL
-          value: INFO
-          scope: RUN_TIME
-        - key: API_TITLE
-          value: PDF Dieline Processor
-          scope: RUN_TIME
-
+name: ogos-pdf-module
+services:
+  - name: api
+    dockerfile_path: Dockerfile
+    http_port: 8080
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    routes:
+      - path: /
+    envs:
+      - key: API_TITLE
+        value: PDF Dieline Processor
+      - key: API_VERSION
+        value: 1.0.0
+      - key: API_DESCRIPTION
+        value: Process PDF files with dieline management
+      - key: CORS_ORIGINS
+        value: "[\"*\"]"
+      - key: MAX_FILE_SIZE
+        value: "52428800"  # 50MB
+      - key: LOG_LEVEL
+        value: INFO
+    health_check:
+      http_path: /healthz
+      initial_delay_seconds: 30

@@ -1,0 +1,1599 @@
+{
+  "input_path": "ai_data/test-pdfs/5237526_8130276/5237526_8130276.PDF",
+  "target_colors": [
+    "CutContour",
+    "KissCut",
+    "Kiss Cut",
+    "Cut Contour",
+    "cutcontour",
+    "kisscut",
+    "kiss cut",
+    "cut contour",
+    "CUTCONTOUR",
+    "KISSCUT",
+    "CUT CONTOUR",
+    "KISS CUT"
+  ],
+  "total_pages": 1,
+  "cutcontour_pages": 1,
+  "extraction_methods": {
+    "spot_color_analysis": true,
+    "geometric_analysis": true,
+    "cross_reference_matching": true
+  },
+  "page_results": [
+    {
+      "page": 1,
+      "has_cutcontour": true,
+      "spot_color_analysis": {
+        "found_target_colors": [
+          {
+            "name": "/Cs3",
+            "definition": "['/Separation', '/CutContour', '/DeviceCMYK', IndirectObject(486, 0, 4342029616)]",
+            "type": "Separation",
+            "color_name": "CutContour",
+            "color_names": []
+          }
+        ],
+        "all_colorspaces": [
+          {
+            "name": "/Cs3",
+            "definition": "['/Separation', '/CutContour', '/DeviceCMYK', IndirectObject(486, 0, 4342029616)]",
+            "type": "Separation",
+            "color_name": "CutContour",
+            "color_names": []
+          },
+          {
+            "name": "/Cs4",
+            "definition": "['/Separation', '/All', '/DeviceGray', IndirectObject(487, 0, 4342029616)]",
+            "type": "Separation",
+            "color_name": null,
+            "color_names": []
+          }
+        ],
+        "separation_colors": [
+          {
+            "name": "/Cs3",
+            "definition": "['/Separation', '/CutContour', '/DeviceCMYK', IndirectObject(486, 0, 4342029616)]",
+            "type": "Separation",
+            "color_name": "CutContour",
+            "color_names": []
+          },
+          {
+            "name": "/Cs4",
+            "definition": "['/Separation', '/All', '/DeviceGray', IndirectObject(487, 0, 4342029616)]",
+            "type": "Separation",
+            "color_name": null,
+            "color_names": []
+          }
+        ],
+        "devicen_colors": []
+      },
+      "geometric_analysis": {
+        "total_paths": 17,
+        "thin_paths": [
+          {
+            "path_index": 0,
+            "line_width": 1.0,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(21.496341705322266, 21.496658325195312, 162.23533630371094, 162.23565673828125)",
+            "path_type": "s",
+            "items": [
+              [
+                "c",
+                "Point(162.23533630371094, 91.86565399169922)",
+                "Point(162.23533630371094, 53.00215148925781)",
+                "Point(130.72984313964844, 21.496658325195312)",
+                "Point(91.86634063720703, 21.496658325195312)"
+              ],
+              [
+                "c",
+                "Point(91.86634063720703, 21.496658325195312)",
+                "Point(53.002342224121094, 21.496658325195312)",
+                "Point(21.496341705322266, 53.00215148925781)",
+                "Point(21.496341705322266, 91.86565399169922)"
+              ],
+              [
+                "c",
+                "Point(21.496341705322266, 91.86565399169922)",
+                "Point(21.496341705322266, 130.72964477539062)",
+                "Point(53.002342224121094, 162.23565673828125)",
+                "Point(91.86634063720703, 162.23565673828125)"
+              ],
+              [
+                "c",
+                "Point(91.86634063720703, 162.23565673828125)",
+                "Point(130.72984313964844, 162.23565673828125)",
+                "Point(162.23533630371094, 130.72964477539062)",
+                "Point(162.23533630371094, 91.86565399169922)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 1,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(0.0, 162.73199462890625, 12.0, 162.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(0.0, 162.73199462890625)",
+                "Point(12.0, 162.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 2,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(21.0, 171.73199462890625, 21.0, 183.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(21.0, 183.73199462890625)",
+                "Point(21.0, 171.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 3,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(0.0, 20.999710083007812, 12.0, 20.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(0.0, 20.999710083007812)",
+                "Point(12.0, 20.999710083007812)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 4,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(21.0, -0.0002899169921875, 21.0, 11.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(21.0, 11.999710083007812)",
+                "Point(21.0, -0.0002899169921875)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 5,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(171.73228454589844, 20.999710083007812, 183.73228454589844, 20.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(171.73228454589844, 20.999710083007812)",
+                "Point(183.73228454589844, 20.999710083007812)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 6,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(162.73228454589844, -0.0002899169921875, 162.73228454589844, 11.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(162.73228454589844, 11.999710083007812)",
+                "Point(162.73228454589844, -0.0002899169921875)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 7,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(171.73228454589844, 162.73199462890625, 183.73228454589844, 162.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(171.73228454589844, 162.73199462890625)",
+                "Point(183.73228454589844, 162.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 8,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(162.73228454589844, 171.73199462890625, 162.73228454589844, 183.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(162.73228454589844, 183.73199462890625)",
+                "Point(162.73228454589844, 171.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 9,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(0.0, 162.73199462890625, 12.0, 162.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(0.0, 162.73199462890625)",
+                "Point(12.0, 162.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 10,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(21.0, 171.73199462890625, 21.0, 183.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(21.0, 183.73199462890625)",
+                "Point(21.0, 171.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 11,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(0.0, 20.999710083007812, 12.0, 20.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(0.0, 20.999710083007812)",
+                "Point(12.0, 20.999710083007812)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 12,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(21.0, -0.0002899169921875, 21.0, 11.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(21.0, 11.999710083007812)",
+                "Point(21.0, -0.0002899169921875)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 13,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(171.73228454589844, 20.999710083007812, 183.73228454589844, 20.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(171.73228454589844, 20.999710083007812)",
+                "Point(183.73228454589844, 20.999710083007812)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 14,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(162.73228454589844, -0.0002899169921875, 162.73228454589844, 11.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(162.73228454589844, 11.999710083007812)",
+                "Point(162.73228454589844, -0.0002899169921875)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 15,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(171.73228454589844, 162.73199462890625, 183.73228454589844, 162.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(171.73228454589844, 162.73199462890625)",
+                "Point(183.73228454589844, 162.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 16,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(162.73228454589844, 171.73199462890625, 162.73228454589844, 183.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(162.73228454589844, 183.73199462890625)",
+                "Point(162.73228454589844, 171.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          }
+        ],
+        "stroke_only_paths": [
+          {
+            "path_index": 0,
+            "line_width": 1.0,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(21.496341705322266, 21.496658325195312, 162.23533630371094, 162.23565673828125)",
+            "path_type": "s",
+            "items": [
+              [
+                "c",
+                "Point(162.23533630371094, 91.86565399169922)",
+                "Point(162.23533630371094, 53.00215148925781)",
+                "Point(130.72984313964844, 21.496658325195312)",
+                "Point(91.86634063720703, 21.496658325195312)"
+              ],
+              [
+                "c",
+                "Point(91.86634063720703, 21.496658325195312)",
+                "Point(53.002342224121094, 21.496658325195312)",
+                "Point(21.496341705322266, 53.00215148925781)",
+                "Point(21.496341705322266, 91.86565399169922)"
+              ],
+              [
+                "c",
+                "Point(21.496341705322266, 91.86565399169922)",
+                "Point(21.496341705322266, 130.72964477539062)",
+                "Point(53.002342224121094, 162.23565673828125)",
+                "Point(91.86634063720703, 162.23565673828125)"
+              ],
+              [
+                "c",
+                "Point(91.86634063720703, 162.23565673828125)",
+                "Point(130.72984313964844, 162.23565673828125)",
+                "Point(162.23533630371094, 130.72964477539062)",
+                "Point(162.23533630371094, 91.86565399169922)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 1,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(0.0, 162.73199462890625, 12.0, 162.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(0.0, 162.73199462890625)",
+                "Point(12.0, 162.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 2,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(21.0, 171.73199462890625, 21.0, 183.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(21.0, 183.73199462890625)",
+                "Point(21.0, 171.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 3,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(0.0, 20.999710083007812, 12.0, 20.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(0.0, 20.999710083007812)",
+                "Point(12.0, 20.999710083007812)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 4,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(21.0, -0.0002899169921875, 21.0, 11.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(21.0, 11.999710083007812)",
+                "Point(21.0, -0.0002899169921875)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 5,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(171.73228454589844, 20.999710083007812, 183.73228454589844, 20.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(171.73228454589844, 20.999710083007812)",
+                "Point(183.73228454589844, 20.999710083007812)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 6,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(162.73228454589844, -0.0002899169921875, 162.73228454589844, 11.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(162.73228454589844, 11.999710083007812)",
+                "Point(162.73228454589844, -0.0002899169921875)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 7,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(171.73228454589844, 162.73199462890625, 183.73228454589844, 162.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(171.73228454589844, 162.73199462890625)",
+                "Point(183.73228454589844, 162.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 8,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(162.73228454589844, 171.73199462890625, 162.73228454589844, 183.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(162.73228454589844, 183.73199462890625)",
+                "Point(162.73228454589844, 171.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 9,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(0.0, 162.73199462890625, 12.0, 162.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(0.0, 162.73199462890625)",
+                "Point(12.0, 162.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 10,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(21.0, 171.73199462890625, 21.0, 183.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(21.0, 183.73199462890625)",
+                "Point(21.0, 171.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 11,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(0.0, 20.999710083007812, 12.0, 20.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(0.0, 20.999710083007812)",
+                "Point(12.0, 20.999710083007812)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 12,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(21.0, -0.0002899169921875, 21.0, 11.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(21.0, 11.999710083007812)",
+                "Point(21.0, -0.0002899169921875)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 13,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(171.73228454589844, 20.999710083007812, 183.73228454589844, 20.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(171.73228454589844, 20.999710083007812)",
+                "Point(183.73228454589844, 20.999710083007812)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 14,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(162.73228454589844, -0.0002899169921875, 162.73228454589844, 11.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(162.73228454589844, 11.999710083007812)",
+                "Point(162.73228454589844, -0.0002899169921875)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 15,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(171.73228454589844, 162.73199462890625, 183.73228454589844, 162.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(171.73228454589844, 162.73199462890625)",
+                "Point(183.73228454589844, 162.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 16,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(162.73228454589844, 171.73199462890625, 162.73228454589844, 183.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(162.73228454589844, 183.73199462890625)",
+                "Point(162.73228454589844, 171.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          }
+        ],
+        "potential_cutcontour_paths": [
+          {
+            "path_index": 0,
+            "line_width": 1.0,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(21.496341705322266, 21.496658325195312, 162.23533630371094, 162.23565673828125)",
+            "path_type": "s",
+            "items": [
+              [
+                "c",
+                "Point(162.23533630371094, 91.86565399169922)",
+                "Point(162.23533630371094, 53.00215148925781)",
+                "Point(130.72984313964844, 21.496658325195312)",
+                "Point(91.86634063720703, 21.496658325195312)"
+              ],
+              [
+                "c",
+                "Point(91.86634063720703, 21.496658325195312)",
+                "Point(53.002342224121094, 21.496658325195312)",
+                "Point(21.496341705322266, 53.00215148925781)",
+                "Point(21.496341705322266, 91.86565399169922)"
+              ],
+              [
+                "c",
+                "Point(21.496341705322266, 91.86565399169922)",
+                "Point(21.496341705322266, 130.72964477539062)",
+                "Point(53.002342224121094, 162.23565673828125)",
+                "Point(91.86634063720703, 162.23565673828125)"
+              ],
+              [
+                "c",
+                "Point(91.86634063720703, 162.23565673828125)",
+                "Point(130.72984313964844, 162.23565673828125)",
+                "Point(162.23533630371094, 130.72964477539062)",
+                "Point(162.23533630371094, 91.86565399169922)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 1,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(0.0, 162.73199462890625, 12.0, 162.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(0.0, 162.73199462890625)",
+                "Point(12.0, 162.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 2,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(21.0, 171.73199462890625, 21.0, 183.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(21.0, 183.73199462890625)",
+                "Point(21.0, 171.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 3,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(0.0, 20.999710083007812, 12.0, 20.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(0.0, 20.999710083007812)",
+                "Point(12.0, 20.999710083007812)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 4,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(21.0, -0.0002899169921875, 21.0, 11.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(21.0, 11.999710083007812)",
+                "Point(21.0, -0.0002899169921875)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 5,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(171.73228454589844, 20.999710083007812, 183.73228454589844, 20.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(171.73228454589844, 20.999710083007812)",
+                "Point(183.73228454589844, 20.999710083007812)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 6,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(162.73228454589844, -0.0002899169921875, 162.73228454589844, 11.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(162.73228454589844, 11.999710083007812)",
+                "Point(162.73228454589844, -0.0002899169921875)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 7,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(171.73228454589844, 162.73199462890625, 183.73228454589844, 162.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(171.73228454589844, 162.73199462890625)",
+                "Point(183.73228454589844, 162.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 8,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(162.73228454589844, 171.73199462890625, 162.73228454589844, 183.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(162.73228454589844, 183.73199462890625)",
+                "Point(162.73228454589844, 171.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 9,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(0.0, 162.73199462890625, 12.0, 162.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(0.0, 162.73199462890625)",
+                "Point(12.0, 162.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 10,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(21.0, 171.73199462890625, 21.0, 183.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(21.0, 183.73199462890625)",
+                "Point(21.0, 171.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 11,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(0.0, 20.999710083007812, 12.0, 20.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(0.0, 20.999710083007812)",
+                "Point(12.0, 20.999710083007812)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 12,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(21.0, -0.0002899169921875, 21.0, 11.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(21.0, 11.999710083007812)",
+                "Point(21.0, -0.0002899169921875)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 13,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(171.73228454589844, 20.999710083007812, 183.73228454589844, 20.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(171.73228454589844, 20.999710083007812)",
+                "Point(183.73228454589844, 20.999710083007812)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 14,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(162.73228454589844, -0.0002899169921875, 162.73228454589844, 11.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(162.73228454589844, 11.999710083007812)",
+                "Point(162.73228454589844, -0.0002899169921875)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 15,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(171.73228454589844, 162.73199462890625, 183.73228454589844, 162.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(171.73228454589844, 162.73199462890625)",
+                "Point(183.73228454589844, 162.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          {
+            "path_index": 16,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(162.73228454589844, 171.73199462890625, 162.73228454589844, 183.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(162.73228454589844, 183.73199462890625)",
+                "Point(162.73228454589844, 171.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          }
+        ]
+      },
+      "matched_elements": [
+        {
+          "path_info": {
+            "path_index": 0,
+            "line_width": 1.0,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(21.496341705322266, 21.496658325195312, 162.23533630371094, 162.23565673828125)",
+            "path_type": "s",
+            "items": [
+              [
+                "c",
+                "Point(162.23533630371094, 91.86565399169922)",
+                "Point(162.23533630371094, 53.00215148925781)",
+                "Point(130.72984313964844, 21.496658325195312)",
+                "Point(91.86634063720703, 21.496658325195312)"
+              ],
+              [
+                "c",
+                "Point(91.86634063720703, 21.496658325195312)",
+                "Point(53.002342224121094, 21.496658325195312)",
+                "Point(21.496341705322266, 53.00215148925781)",
+                "Point(21.496341705322266, 91.86565399169922)"
+              ],
+              [
+                "c",
+                "Point(21.496341705322266, 91.86565399169922)",
+                "Point(21.496341705322266, 130.72964477539062)",
+                "Point(53.002342224121094, 162.23565673828125)",
+                "Point(91.86634063720703, 162.23565673828125)"
+              ],
+              [
+                "c",
+                "Point(91.86634063720703, 162.23565673828125)",
+                "Point(130.72984313964844, 162.23565673828125)",
+                "Point(162.23533630371094, 130.72964477539062)",
+                "Point(162.23533630371094, 91.86565399169922)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          "spot_color_info": {
+            "name": "/Cs3",
+            "definition": "['/Separation', '/CutContour', '/DeviceCMYK', IndirectObject(486, 0, 4342029616)]",
+            "type": "Separation",
+            "color_name": "CutContour",
+            "color_names": []
+          },
+          "match_confidence": "very_high",
+          "match_reason": "Thin stroke-only path with target spot color present; Geometric shape (140.7x140.7) suitable for cutting"
+        },
+        {
+          "path_info": {
+            "path_index": 1,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(0.0, 162.73199462890625, 12.0, 162.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(0.0, 162.73199462890625)",
+                "Point(12.0, 162.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          "spot_color_info": {
+            "name": "/Cs3",
+            "definition": "['/Separation', '/CutContour', '/DeviceCMYK', IndirectObject(486, 0, 4342029616)]",
+            "type": "Separation",
+            "color_name": "CutContour",
+            "color_names": []
+          },
+          "match_confidence": "high",
+          "match_reason": "Thin stroke-only path with target spot color present; Very thin line (0.375pt) typical for cut contours"
+        },
+        {
+          "path_info": {
+            "path_index": 2,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(21.0, 171.73199462890625, 21.0, 183.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(21.0, 183.73199462890625)",
+                "Point(21.0, 171.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          "spot_color_info": {
+            "name": "/Cs3",
+            "definition": "['/Separation', '/CutContour', '/DeviceCMYK', IndirectObject(486, 0, 4342029616)]",
+            "type": "Separation",
+            "color_name": "CutContour",
+            "color_names": []
+          },
+          "match_confidence": "high",
+          "match_reason": "Thin stroke-only path with target spot color present; Very thin line (0.375pt) typical for cut contours"
+        },
+        {
+          "path_info": {
+            "path_index": 3,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(0.0, 20.999710083007812, 12.0, 20.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(0.0, 20.999710083007812)",
+                "Point(12.0, 20.999710083007812)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          "spot_color_info": {
+            "name": "/Cs3",
+            "definition": "['/Separation', '/CutContour', '/DeviceCMYK', IndirectObject(486, 0, 4342029616)]",
+            "type": "Separation",
+            "color_name": "CutContour",
+            "color_names": []
+          },
+          "match_confidence": "high",
+          "match_reason": "Thin stroke-only path with target spot color present; Very thin line (0.375pt) typical for cut contours"
+        },
+        {
+          "path_info": {
+            "path_index": 4,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(21.0, -0.0002899169921875, 21.0, 11.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(21.0, 11.999710083007812)",
+                "Point(21.0, -0.0002899169921875)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          "spot_color_info": {
+            "name": "/Cs3",
+            "definition": "['/Separation', '/CutContour', '/DeviceCMYK', IndirectObject(486, 0, 4342029616)]",
+            "type": "Separation",
+            "color_name": "CutContour",
+            "color_names": []
+          },
+          "match_confidence": "high",
+          "match_reason": "Thin stroke-only path with target spot color present; Very thin line (0.375pt) typical for cut contours"
+        },
+        {
+          "path_info": {
+            "path_index": 5,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(171.73228454589844, 20.999710083007812, 183.73228454589844, 20.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(171.73228454589844, 20.999710083007812)",
+                "Point(183.73228454589844, 20.999710083007812)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          "spot_color_info": {
+            "name": "/Cs3",
+            "definition": "['/Separation', '/CutContour', '/DeviceCMYK', IndirectObject(486, 0, 4342029616)]",
+            "type": "Separation",
+            "color_name": "CutContour",
+            "color_names": []
+          },
+          "match_confidence": "high",
+          "match_reason": "Thin stroke-only path with target spot color present; Very thin line (0.375pt) typical for cut contours"
+        },
+        {
+          "path_info": {
+            "path_index": 6,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(162.73228454589844, -0.0002899169921875, 162.73228454589844, 11.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(162.73228454589844, 11.999710083007812)",
+                "Point(162.73228454589844, -0.0002899169921875)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          "spot_color_info": {
+            "name": "/Cs3",
+            "definition": "['/Separation', '/CutContour', '/DeviceCMYK', IndirectObject(486, 0, 4342029616)]",
+            "type": "Separation",
+            "color_name": "CutContour",
+            "color_names": []
+          },
+          "match_confidence": "high",
+          "match_reason": "Thin stroke-only path with target spot color present; Very thin line (0.375pt) typical for cut contours"
+        },
+        {
+          "path_info": {
+            "path_index": 7,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(171.73228454589844, 162.73199462890625, 183.73228454589844, 162.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(171.73228454589844, 162.73199462890625)",
+                "Point(183.73228454589844, 162.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          "spot_color_info": {
+            "name": "/Cs3",
+            "definition": "['/Separation', '/CutContour', '/DeviceCMYK', IndirectObject(486, 0, 4342029616)]",
+            "type": "Separation",
+            "color_name": "CutContour",
+            "color_names": []
+          },
+          "match_confidence": "high",
+          "match_reason": "Thin stroke-only path with target spot color present; Very thin line (0.375pt) typical for cut contours"
+        },
+        {
+          "path_info": {
+            "path_index": 8,
+            "line_width": 0.375,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(162.73228454589844, 171.73199462890625, 162.73228454589844, 183.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(162.73228454589844, 183.73199462890625)",
+                "Point(162.73228454589844, 171.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          "spot_color_info": {
+            "name": "/Cs3",
+            "definition": "['/Separation', '/CutContour', '/DeviceCMYK', IndirectObject(486, 0, 4342029616)]",
+            "type": "Separation",
+            "color_name": "CutContour",
+            "color_names": []
+          },
+          "match_confidence": "high",
+          "match_reason": "Thin stroke-only path with target spot color present; Very thin line (0.375pt) typical for cut contours"
+        },
+        {
+          "path_info": {
+            "path_index": 9,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(0.0, 162.73199462890625, 12.0, 162.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(0.0, 162.73199462890625)",
+                "Point(12.0, 162.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          "spot_color_info": {
+            "name": "/Cs3",
+            "definition": "['/Separation', '/CutContour', '/DeviceCMYK', IndirectObject(486, 0, 4342029616)]",
+            "type": "Separation",
+            "color_name": "CutContour",
+            "color_names": []
+          },
+          "match_confidence": "high",
+          "match_reason": "Thin stroke-only path with target spot color present; Very thin line (0.125pt) typical for cut contours"
+        },
+        {
+          "path_info": {
+            "path_index": 10,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(21.0, 171.73199462890625, 21.0, 183.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(21.0, 183.73199462890625)",
+                "Point(21.0, 171.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          "spot_color_info": {
+            "name": "/Cs3",
+            "definition": "['/Separation', '/CutContour', '/DeviceCMYK', IndirectObject(486, 0, 4342029616)]",
+            "type": "Separation",
+            "color_name": "CutContour",
+            "color_names": []
+          },
+          "match_confidence": "high",
+          "match_reason": "Thin stroke-only path with target spot color present; Very thin line (0.125pt) typical for cut contours"
+        },
+        {
+          "path_info": {
+            "path_index": 11,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(0.0, 20.999710083007812, 12.0, 20.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(0.0, 20.999710083007812)",
+                "Point(12.0, 20.999710083007812)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          "spot_color_info": {
+            "name": "/Cs3",
+            "definition": "['/Separation', '/CutContour', '/DeviceCMYK', IndirectObject(486, 0, 4342029616)]",
+            "type": "Separation",
+            "color_name": "CutContour",
+            "color_names": []
+          },
+          "match_confidence": "high",
+          "match_reason": "Thin stroke-only path with target spot color present; Very thin line (0.125pt) typical for cut contours"
+        },
+        {
+          "path_info": {
+            "path_index": 12,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(21.0, -0.0002899169921875, 21.0, 11.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(21.0, 11.999710083007812)",
+                "Point(21.0, -0.0002899169921875)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          "spot_color_info": {
+            "name": "/Cs3",
+            "definition": "['/Separation', '/CutContour', '/DeviceCMYK', IndirectObject(486, 0, 4342029616)]",
+            "type": "Separation",
+            "color_name": "CutContour",
+            "color_names": []
+          },
+          "match_confidence": "high",
+          "match_reason": "Thin stroke-only path with target spot color present; Very thin line (0.125pt) typical for cut contours"
+        },
+        {
+          "path_info": {
+            "path_index": 13,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(171.73228454589844, 20.999710083007812, 183.73228454589844, 20.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(171.73228454589844, 20.999710083007812)",
+                "Point(183.73228454589844, 20.999710083007812)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          "spot_color_info": {
+            "name": "/Cs3",
+            "definition": "['/Separation', '/CutContour', '/DeviceCMYK', IndirectObject(486, 0, 4342029616)]",
+            "type": "Separation",
+            "color_name": "CutContour",
+            "color_names": []
+          },
+          "match_confidence": "high",
+          "match_reason": "Thin stroke-only path with target spot color present; Very thin line (0.125pt) typical for cut contours"
+        },
+        {
+          "path_info": {
+            "path_index": 14,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(162.73228454589844, -0.0002899169921875, 162.73228454589844, 11.999710083007812)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(162.73228454589844, 11.999710083007812)",
+                "Point(162.73228454589844, -0.0002899169921875)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          "spot_color_info": {
+            "name": "/Cs3",
+            "definition": "['/Separation', '/CutContour', '/DeviceCMYK', IndirectObject(486, 0, 4342029616)]",
+            "type": "Separation",
+            "color_name": "CutContour",
+            "color_names": []
+          },
+          "match_confidence": "high",
+          "match_reason": "Thin stroke-only path with target spot color present; Very thin line (0.125pt) typical for cut contours"
+        },
+        {
+          "path_info": {
+            "path_index": 15,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(171.73228454589844, 162.73199462890625, 183.73228454589844, 162.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(171.73228454589844, 162.73199462890625)",
+                "Point(183.73228454589844, 162.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          "spot_color_info": {
+            "name": "/Cs3",
+            "definition": "['/Separation', '/CutContour', '/DeviceCMYK', IndirectObject(486, 0, 4342029616)]",
+            "type": "Separation",
+            "color_name": "CutContour",
+            "color_names": []
+          },
+          "match_confidence": "high",
+          "match_reason": "Thin stroke-only path with target spot color present; Very thin line (0.125pt) typical for cut contours"
+        },
+        {
+          "path_info": {
+            "path_index": 16,
+            "line_width": 0.125,
+            "stroke_color": null,
+            "fill_color": null,
+            "bounding_box": "Rect(162.73228454589844, 171.73199462890625, 162.73228454589844, 183.73199462890625)",
+            "path_type": "s",
+            "items": [
+              [
+                "l",
+                "Point(162.73228454589844, 183.73199462890625)",
+                "Point(162.73228454589844, 171.73199462890625)"
+              ]
+            ],
+            "is_thin_line": true,
+            "is_stroke_only": true,
+            "is_potential_cutcontour": true
+          },
+          "spot_color_info": {
+            "name": "/Cs3",
+            "definition": "['/Separation', '/CutContour', '/DeviceCMYK', IndirectObject(486, 0, 4342029616)]",
+            "type": "Separation",
+            "color_name": "CutContour",
+            "color_names": []
+          },
+          "match_confidence": "high",
+          "match_reason": "Thin stroke-only path with target spot color present; Very thin line (0.125pt) typical for cut contours"
+        }
+      ],
+      "summary": {
+        "target_colors_found": 1,
+        "target_color_names": [
+          "CutContour"
+        ],
+        "total_colorspaces": 2,
+        "total_paths": 17,
+        "potential_cutcontour_paths": 17,
+        "matched_elements": 17,
+        "confidence": "high"
+      }
+    }
+  ]
+}

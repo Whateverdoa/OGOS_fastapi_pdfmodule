@@ -1,0 +1,39 @@
+{
+    "Description": "1000 Stickers op rol 80 x 80 mm 80 g m2",
+    "ReferenceAtCustomer": "6001784504-1",
+    "Delivery": "2025-08-05",
+    "Shipment_method": "PNA_3085_ZONDERHANDTEKENING",
+    "OrderQuantity": 1000,
+    "Quantity_per_roll": 0,
+    "DispenserQuantity": 0,
+    "Core": "40_mm",
+    "UnitPrice": 142.47,
+    "SupplierId": "Print.com",
+    "Name": "labels-on-roll",
+    "Street": "Bedrijvenpark Twente",
+    "Country": "NL",
+    "PostalCode": "7602KM",
+    "City": "Almelo",
+    "Contacts": [
+        {
+            "LastName": "Lowik",
+            "FirstName": "Marcel",
+            "Initials": "",
+            "Title:": "Mr./Mevr",
+            "Email": "no@email.com",
+            "Phone": "31546571040"
+        }
+    ],
+    "Width": "80",
+    "Height": "80",
+    "Shape": "Rectangle",
+    "Winding": 2,
+    "Radius": 2,
+    "Premium_White": "N",
+    "Substrate": "80gr_paper_gloss",
+    "Adhesive": "permanent",
+    "Delivery_Addresses": 1,
+    "numberOfDesigns": "1-1",
+    "LineComment1": "6001784504-1",
+    "Finish": "single_sided_vernis_gloss"
+}

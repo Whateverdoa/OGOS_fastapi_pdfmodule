@@ -8,6 +8,10 @@ class ShapeType(str, Enum):
     rectangle = "rectangle"
     custom = "custom"
 
+class FontMode(str, Enum):
+    embed = "embed"
+    outline = "outline"
+
 
 class PDFJobConfig(BaseModel):
     """Configuration for PDF processing job based on JSON input"""
@@ -27,6 +31,8 @@ class PDFJobConfig(BaseModel):
         None,
         description="Page rotation to apply before processing (degrees: 0, 90, 180, 270)"
     )
+    fonts: FontMode = Field(FontMode.embed, description="Font handling: 'embed' (default) or 'outline'")
+    remove_marks: bool = Field(False, description="Remove crop/registration marks (e.g., Separation/All)")
 
 
 class DielineBoundingBox(BaseModel):
@@ -111,9 +117,12 @@ class ErrorResponse(BaseModel):
     error: str = Field(..., description="Error message")
     detail: Optional[str] = Field(None, description="Detailed error information")
     reference: Optional[str] = Field(None, description="Reference number if available")
+<<<<<<< HEAD
 
 
 class WindingRouteResponse(BaseModel):
     """Response for winding routing endpoint"""
     winding_value: str = Field(..., description="Original input winding value")
     route: int = Field(..., description="Mapped route angle (0, 90, 180, 270)")
+=======
+>>>>>>> origin/feature/rotation-fonts-marks

@@ -75,15 +75,15 @@ class UniversalDielineRemover:
             for page_num, page in enumerate(reader.pages):
                 if self.debug:
                     print(f"Processing page {page_num + 1} for {shape_type} dieline removal")
-                
-                # Step 1: Find all dieline color spaces
-                self._find_dieline_colorspaces(page, result)
-                
-                # Step 2: Remove dieline color spaces
-                self._remove_dieline_colorspaces(page, result)
-                
-                # Step 3: Remove dieline paths from content
-                self._remove_dieline_paths_from_content(page, result)
+
+                # Step 1: Collect dieline color spaces on page and nested XObjects
+                self._collect_dieline_colorspaces_recursive(page, result)
+
+                # Step 2: Remove dieline color spaces throughout resources tree
+                self._remove_dieline_colorspaces_recursive(page, result)
+
+                # Step 3: Remove dieline paths from page content and nested XObjects
+                self._remove_dieline_paths_in_contents(page, result)
                 
                 writer.add_page(page)
             
@@ -101,27 +101,41 @@ class UniversalDielineRemover:
                 print(f"Error: {e}")
             return result
     
-    def _find_dieline_colorspaces(self, page, result: Dict):
-        """
-        Find all dieline color spaces in the page
-        """
+    def _collect_dieline_colorspaces_recursive(self, obj, result: Dict):
+        """Collect dieline ColorSpace names from /Resources on the object and nested XObjects."""
         try:
-            if '/Resources' not in page or '/ColorSpace' not in page['/Resources']:
-                return
-                
-            color_spaces = page['/Resources']['/ColorSpace']
-            
-            for cs_name, cs_def in color_spaces.items():
-                dieline_color = self._identify_dieline_colorspace(cs_name, cs_def)
-                if dieline_color:
-                    self.found_dieline_colors.add(dieline_color)
-                    self.found_dieline_colorspaces[cs_name] = dieline_color
-                    if self.debug:
-                        print(f"Found dieline color space: {cs_name} -> {dieline_color}")
-                    
+            resources = obj.get('/Resources') if hasattr(obj, 'get') else None
+            if resources and hasattr(resources, 'get_object'):
+                resources = resources.get_object()
+
+            if resources and '/ColorSpace' in resources:
+                color_spaces = resources['/ColorSpace']
+                if hasattr(color_spaces, 'get_object'):
+                    color_spaces = color_spaces.get_object()
+                if hasattr(color_spaces, 'items'):
+                    for cs_name, cs_def in color_spaces.items():
+                        dieline_color = self._identify_dieline_colorspace(cs_name, cs_def)
+                        if dieline_color:
+                            self.found_dieline_colors.add(dieline_color)
+                            self.found_dieline_colorspaces[cs_name] = dieline_color
+                            if self.debug:
+                                print(f"Found dieline color space: {cs_name} -> {dieline_color}")
+
+            # Recurse into XObjects (Forms)
+            if resources and '/XObject' in resources:
+                xobjs = resources['/XObject']
+                if hasattr(xobjs, 'get_object'):
+                    xobjs = xobjs.get_object()
+                if hasattr(xobjs, 'items'):
+                    for name, xo in xobjs.items():
+                        if hasattr(xo, 'get_object'):
+                            xo = xo.get_object()
+                        subtype = str(xo.get('/Subtype')) if hasattr(xo, 'get') else ''
+                        if subtype == '/Form':
+                            self._collect_dieline_colorspaces_recursive(xo, result)
         except Exception as e:
             if self.debug:
-                print(f"Error finding dieline color spaces: {e}")
+                print(f"Error collecting colorspaces recursively: {e}")
     
     def _identify_dieline_colorspace(self, cs_name: str, cs_def) -> str:
         """
@@ -160,73 +174,102 @@ class UniversalDielineRemover:
             
         return None
     
-    def _remove_dieline_colorspaces(self, page, result: Dict):
-        """
-        Remove dieline color space definitions
-        """
+    def _remove_dieline_colorspaces_recursive(self, obj, result: Dict):
+        """Remove dieline ColorSpace definitions from /Resources on the object and nested XObjects."""
         try:
-            if '/Resources' not in page or '/ColorSpace' not in page['/Resources']:
+            resources = obj.get('/Resources') if hasattr(obj, 'get') else None
+            if resources and hasattr(resources, 'get_object'):
+                resources = resources.get_object()
+            if not resources:
                 return
-                
-            color_spaces = page['/Resources']['/ColorSpace']
-            
-            # Remove all found dieline color spaces
-            for cs_name in list(self.found_dieline_colorspaces.keys()):
-                if cs_name in color_spaces:
-                    del color_spaces[cs_name]
-                    result['dieline_colorspaces_removed'] += 1
-                    if self.debug:
-                        print(f"Removed dieline color space: {cs_name}")
-                    
+
+            # Remove at this level
+            if '/ColorSpace' in resources:
+                color_spaces = resources['/ColorSpace']
+                if hasattr(color_spaces, 'get_object'):
+                    color_spaces = color_spaces.get_object()
+                if hasattr(color_spaces, 'keys'):
+                    for cs_name in list(color_spaces.keys()):
+                        if cs_name in self.found_dieline_colorspaces:
+                            del color_spaces[cs_name]
+                            result['dieline_colorspaces_removed'] += 1
+                            if self.debug:
+                                print(f"Removed dieline color space: {cs_name}")
+
+            # Recurse into XObjects (Forms)
+            if '/XObject' in resources:
+                xobjs = resources['/XObject']
+                if hasattr(xobjs, 'get_object'):
+                    xobjs = xobjs.get_object()
+                if hasattr(xobjs, 'items'):
+                    for _, xo in xobjs.items():
+                        if hasattr(xo, 'get_object'):
+                            xo = xo.get_object()
+                        subtype = str(xo.get('/Subtype')) if hasattr(xo, 'get') else ''
+                        if subtype == '/Form':
+                            self._remove_dieline_colorspaces_recursive(xo, result)
         except Exception as e:
             if self.debug:
-                print(f"Error removing dieline color spaces: {e}")
+                print(f"Error removing colorspaces recursively: {e}")
     
-    def _remove_dieline_paths_from_content(self, page, result: Dict):
-        """
-        Remove dieline paths from content streams while preserving design
-        """
+    def _remove_dieline_paths_in_contents(self, obj, result: Dict):
+        """Remove dieline paths from content streams on the object and nested XObjects."""
         try:
-            if '/Contents' not in page:
-                return
-                
-            contents = page['/Contents']
-            if hasattr(contents, 'get_object'):
-                contents = contents.get_object()
-                
-            if hasattr(contents, 'get_data'):
-                original_content = contents.get_data().decode('latin-1')
-                lines = original_content.split('\n')
-                result['total_lines_before'] = len(lines)
-                
-                if self.debug:
-                    print(f"Original content has {len(lines)} lines")
-                
-                # Filter out dieline sequences, preserve everything else
-                filtered_lines = self._filter_dieline_sequences(lines, result)
-                result['total_lines_after'] = len(filtered_lines)
-                
-                if self.debug:
-                    print(f"After filtering: {len(filtered_lines)} lines")
-                
-                if len(filtered_lines) != len(lines):
-                    new_content = '\n'.join(filtered_lines)
-                    
-                    # Update content stream using set_data method
-                    if hasattr(contents, 'set_data'):
-                        contents.set_data(new_content.encode('latin-1'))
-                        if self.debug:
-                            print(f"Content updated: {len(original_content)} -> {len(new_content)} chars")
-                    
-                    # Verify the update worked
-                    if hasattr(contents, 'get_data'):
-                        verification_data = contents.get_data()
-                        if self.debug:
-                            print(f"Verification: {len(verification_data)} bytes in content stream")
-                        
+            # Process this object's own stream (Form XObject) or its /Contents
+            target = None
+            if hasattr(obj, 'get_data'):
+                target = obj  # Form XObject stream
+            else:
+                target = obj.get('/Contents') if hasattr(obj, 'get') else None
+                if target and hasattr(target, 'get_object'):
+                    target = target.get_object()
+
+            def process_stream(stream_obj):
+                if not stream_obj:
+                    return
+                s = stream_obj
+                if hasattr(s, 'get_object'):
+                    s = s.get_object()
+                if hasattr(s, 'get_data'):
+                    try:
+                        original_content = s.get_data().decode('latin-1', errors='ignore')
+                    except Exception:
+                        original_content = ''
+                    lines = original_content.split('\n')
+                    if len(lines) > result.get('total_lines_before', 0):
+                        result['total_lines_before'] = len(lines)
+
+                    filtered_lines = self._filter_dieline_sequences(lines, result)
+                    if len(filtered_lines) != len(lines):
+                        new_content = '\n'.join(filtered_lines)
+                        if hasattr(s, 'set_data'):
+                            s.set_data(new_content.encode('latin-1'))
+                elif isinstance(s, list):
+                    for item in s:
+                        process_stream(item)
+
+            if target is not None:
+                process_stream(target)
+
+            # Recurse into nested XObjects
+            resources = obj.get('/Resources') if hasattr(obj, 'get') else None
+            if resources and hasattr(resources, 'get_object'):
+                resources = resources.get_object()
+            if resources and '/XObject' in resources:
+                xobjs = resources['/XObject']
+                if hasattr(xobjs, 'get_object'):
+                    xobjs = xobjs.get_object()
+                if hasattr(xobjs, 'items'):
+                    for _, xo in xobjs.items():
+                        if hasattr(xo, 'get_object'):
+                            xo = xo.get_object()
+                        subtype = str(xo.get('/Subtype')) if hasattr(xo, 'get') else ''
+                        if subtype == '/Form':
+                            # Process the form's own stream then recurse
+                            self._remove_dieline_paths_in_contents(xo, result)
         except Exception as e:
             if self.debug:
-                print(f"Error processing content: {e}")
+                print(f"Error removing dieline paths in contents: {e}")
     
     def _filter_dieline_sequences(self, lines: List[str], result: Dict) -> List[str]:
         """
@@ -418,3 +461,181 @@ class UniversalDielineRemover:
             
         except Exception as e:
             return {'error': str(e)}
+
+    def remove_registration_marks(self, input_path: str, output_path: str) -> Dict:
+        """
+        Remove registration/crop marks that use the special Separation color 'All'.
+
+        Strategy: find ColorSpace entries with Separation name 'All' on pages and
+        nested Form XObjects; remove their drawing sequences from content streams
+        and delete the ColorSpace definitions from resources.
+        """
+        result = {
+            'success': False,
+            'registration_colorspaces_removed': 0,
+            'registration_sequences_removed': 0,
+            'error': None
+        }
+        try:
+            reader = PdfReader(input_path)
+            writer = PdfWriter()
+
+            for page in reader.pages:
+                # Collect registration colorspace names
+                reg_cs_names = set()
+                self._collect_registration_colorspaces_recursive(page, reg_cs_names)
+
+                if reg_cs_names:
+                    # Temporarily direct the content remover to target these cs names
+                    self.found_dieline_colorspaces = {name: 'All' for name in reg_cs_names}
+                    self._remove_dieline_paths_in_contents(page, result)
+                    # Remove the ColorSpace definitions
+                    self._remove_specific_colorspaces_recursive(page, reg_cs_names, result)
+
+                writer.add_page(page)
+
+            with open(output_path, 'wb') as f:
+                writer.write(f)
+
+            result['success'] = True
+            return result
+        except Exception as e:
+            result['error'] = str(e)
+            return result
+
+    def _collect_registration_colorspaces_recursive(self, obj, names_out: Set[str]):
+        try:
+            resources = obj.get('/Resources') if hasattr(obj, 'get') else None
+            if resources and hasattr(resources, 'get_object'):
+                resources = resources.get_object()
+            if resources and '/ColorSpace' in resources:
+                cs = resources['/ColorSpace']
+                if hasattr(cs, 'get_object'):
+                    cs = cs.get_object()
+                for cs_name, cs_def in getattr(cs, 'items', lambda: [])():
+                    try:
+                        if hasattr(cs_def, 'get_object'):
+                            cs_def = cs_def.get_object()
+                        if (hasattr(cs_def, '__getitem__') and len(cs_def) > 1 and
+                            str(cs_def[0]) == '/Separation'):
+                            color_name = str(cs_def[1]).replace('/', '').strip()
+                            if color_name.lower() == 'all':
+                                names_out.add(cs_name)
+                    except Exception:
+                        pass
+            # Recurse into forms
+            if resources and '/XObject' in resources:
+                xobjs = resources['/XObject']
+                if hasattr(xobjs, 'get_object'):
+                    xobjs = xobjs.get_object()
+                for _, xo in getattr(xobjs, 'items', lambda: [])():
+                    if hasattr(xo, 'get_object'):
+                        xo = xo.get_object()
+                    subtype = str(xo.get('/Subtype')) if hasattr(xo, 'get') else ''
+                    if subtype == '/Form':
+                        self._collect_registration_colorspaces_recursive(xo, names_out)
+        except Exception:
+            pass
+
+    def _remove_specific_colorspaces_recursive(self, obj, target_names: Set[str], result: Dict):
+        try:
+            resources = obj.get('/Resources') if hasattr(obj, 'get') else None
+            if resources and hasattr(resources, 'get_object'):
+                resources = resources.get_object()
+            if resources and '/ColorSpace' in resources:
+                cs = resources['/ColorSpace']
+                if hasattr(cs, 'get_object'):
+                    cs = cs.get_object()
+                for name in list(getattr(cs, 'keys', lambda: [])()):
+                    if name in target_names:
+                        try:
+                            del cs[name]
+                            result['registration_colorspaces_removed'] = result.get('registration_colorspaces_removed', 0) + 1
+                        except Exception:
+                            pass
+            if resources and '/XObject' in resources:
+                xobjs = resources['/XObject']
+                if hasattr(xobjs, 'get_object'):
+                    xobjs = xobjs.get_object()
+                for _, xo in getattr(xobjs, 'items', lambda: [])():
+                    if hasattr(xo, 'get_object'):
+                        xo = xo.get_object()
+                    subtype = str(xo.get('/Subtype')) if hasattr(xo, 'get') else ''
+                    if subtype == '/Form':
+                        self._remove_specific_colorspaces_recursive(xo, target_names, result)
+        except Exception:
+            pass
+    def prune_unwanted_spot_colors(self, input_path: str, output_path: str, allowed_names: Set[str]) -> Dict:
+        """
+        Remove spot ColorSpace definitions for known dieline colors except those explicitly allowed.
+
+        Args:
+            input_path: Input PDF
+            output_path: Output PDF
+            allowed_names: set of spot color names to keep (case-insensitive compare)
+
+        Returns:
+            Dict with counts of removed color spaces.
+        """
+        result = {
+            'success': False,
+            'removed_colorspaces': 0,
+            'allowed': list(allowed_names),
+            'error': None,
+        }
+        try:
+            reader = PdfReader(input_path)
+            writer = PdfWriter()
+
+            # Normalize allowed set to lowercase for comparison
+            allowed_lower = {n.lower() for n in allowed_names}
+
+            for page in reader.pages:
+                # Remove from this page and nested XObjects
+                self._prune_colorspaces_recursive(page, allowed_lower, result)
+                writer.add_page(page)
+
+            with open(output_path, 'wb') as f:
+                writer.write(f)
+
+            result['success'] = True
+            return result
+        except Exception as e:
+            result['error'] = str(e)
+            return result
+
+    def _prune_colorspaces_recursive(self, obj, allowed_lower: Set[str], result: Dict):
+        """Remove ColorSpace entries that match target dieline colors but are not allowed."""
+        try:
+            resources = obj.get('/Resources') if hasattr(obj, 'get') else None
+            if resources and hasattr(resources, 'get_object'):
+                resources = resources.get_object()
+
+            # Remove at this level
+            if resources and '/ColorSpace' in resources:
+                cs = resources['/ColorSpace']
+                if hasattr(cs, 'get_object'):
+                    cs = cs.get_object()
+                if hasattr(cs, 'items'):
+                    for cs_name in list(cs.keys()):
+                        cs_def = cs.get(cs_name)
+                        dieline_color = self._identify_dieline_colorspace(cs_name, cs_def)
+                        if dieline_color and dieline_color.lower() not in allowed_lower:
+                            del cs[cs_name]
+                            result['removed_colorspaces'] += 1
+
+            # Recurse into XObjects
+            if resources and '/XObject' in resources:
+                xobjs = resources['/XObject']
+                if hasattr(xobjs, 'get_object'):
+                    xobjs = xobjs.get_object()
+                if hasattr(xobjs, 'items'):
+                    for _, xo in xobjs.items():
+                        if hasattr(xo, 'get_object'):
+                            xo = xo.get_object()
+                        subtype = str(xo.get('/Subtype')) if hasattr(xo, 'get') else ''
+                        if subtype == '/Form':
+                            self._prune_colorspaces_recursive(xo, allowed_lower, result)
+        except Exception:
+            # Best-effort cleanup
+            pass
