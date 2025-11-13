@@ -191,16 +191,14 @@ class PDFProcessor:
                     os.unlink(temp_path)
             except Exception:
                 pass
-                
-=======
-            
-            if success:
-                # Update spot color properties (ensure 100% magenta, overprint)
-                self.spot_color_handler.update_spot_color_properties(
-                    output_path, output_path,
-                    job_config.spot_color_name,
-                    job_config.line_thickness
-                )
+        
+        # Update spot color properties (ensure 100% magenta, overprint)
+        self.spot_color_handler.update_spot_color_properties(
+            output_path, output_path,
+            job_config.spot_color_name,
+            job_config.line_thickness
+        )
+        
         # Optional: remove registration/crop marks (Separation/All)
         if getattr(job_config, 'remove_marks', False):
             temp_markless = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
@@ -345,17 +343,14 @@ class PDFProcessor:
             os.unlink(dieline_path)
         except:
             pass
-<<<<<<< HEAD
         
         # Normalize dieline compound path and enforce stroke properties
         self.pymupdf_compound_tool.process(output_path, output_path)
-=======
-            
+        
         # Post-merge pruning: remove any leftover dieline spot colors except desired one
         try:
-            from ..utils.universal_dieline_remover import UniversalDielineRemover
             pruned_output = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False).name
-            UniversalDielineRemover().prune_unwanted_spot_colors(
+            self.dieline_remover.prune_unwanted_spot_colors(
                 output_path,
                 pruned_output,
                 allowed_names={job_config.spot_color_name}
