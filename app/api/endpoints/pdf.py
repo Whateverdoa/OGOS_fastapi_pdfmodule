@@ -103,14 +103,12 @@ async def analyze_pdf(
     # Validate file type
     if not pdf_file.filename.lower().endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
-        
     # Check file size
     if pdf_file.size and pdf_file.size > settings.max_file_size:
         raise HTTPException(
             status_code=400,
             detail=f"File size exceeds maximum allowed size of {settings.max_file_size} bytes"
         )
-        
     # Save uploaded file temporarily
     temp_file = None
     try:
@@ -118,16 +116,12 @@ async def analyze_pdf(
         with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
             temp_path = temp_file.name
             shutil.copyfileobj(pdf_file.file, temp_file)
-            
         # Analyze PDF
         analyzer = PDFAnalyzer()
         analysis = analyzer.analyze_pdf(temp_path)
-        
         return PDFAnalysisResult(**analysis)
-        
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error analyzing PDF: {str(e)}")
-        
     finally:
         # Clean up temporary file
         if temp_file and os.path.exists(temp_path):
@@ -147,7 +141,7 @@ async def process_pdf(
 ):
     """
     Process a PDF file with dieline modifications based on the job configuration
-    
+
     Args:
         pdf_file: The PDF file to process
         job_config: JSON string containing job configuration
@@ -163,7 +157,7 @@ async def process_pdf(
         raise HTTPException(status_code=400, detail=f"Invalid JSON in job_config: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid job configuration: {str(e)}")
-        
+
     # Optional fonts override via query param
     if fonts is not None:
         try:
@@ -176,7 +170,7 @@ async def process_pdf(
     # Validate file type
     if not pdf_file.filename.lower().endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
-        
+
     # Save uploaded file temporarily
     temp_input_path = None
     try:
@@ -184,11 +178,11 @@ async def process_pdf(
         with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
             temp_input_path = temp_file.name
             shutil.copyfileobj(pdf_file.file, temp_file)
-            
+
         # Process PDF
         processor = PDFProcessor()
         result = processor.process_pdf(temp_input_path, job_config_obj)
-        
+
         if result['success']:
             # Return the processed PDF file
             output_path = result['output_path']
@@ -247,7 +241,6 @@ async def process_pdf(
             if return_json:
                 with open(output_path, 'rb') as processed_file:
                     encoded_pdf = base64.b64encode(processed_file.read()).decode('ascii')
-
                 payload = PDFProcessingResponse(
                     success=True,
                     message=result['message'],
@@ -280,12 +273,9 @@ async def process_pdf(
                     reference=job_config_obj.reference
                 ).dict()
             )
-            
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing PDF: {str(e)}")
-        
     finally:
-        # Clean up temporary input file
         if temp_input_path and os.path.exists(temp_input_path):
             os.unlink(temp_input_path)
 
@@ -519,7 +509,6 @@ async def process_pdf_with_json_file(
         # Clean up temporary input file
         if temp_input_path and os.path.exists(temp_input_path):
             os.unlink(temp_input_path)
-<<<<<<< HEAD
 
 
 @router.post("/process-zip")
