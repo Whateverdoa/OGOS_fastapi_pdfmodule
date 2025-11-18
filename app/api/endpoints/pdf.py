@@ -737,12 +737,54 @@ async def process_zip(
             success = bool(result.get("success"))
             message = str(result.get("message", ""))
             output_path = result.get("output_path")
+            
+            # Get updated job config from processor (may have corrected dimensions/winding)
+            updated_job_config = result.get("updated_job_config")
+            
+            # Create universal normalized JSON (not just for resellers)
+            universal_normalized_json_bytes = None
+            if original_json_bytes is not None and updated_job_config is not None:
+                try:
+                    normalized = dict(config_dict)
+                    
+                    # Update winding to normalized value
+                    if "Winding" in normalized:
+                        normalized["Winding"] = updated_job_config.winding
+                    elif "winding" in normalized:
+                        normalized["winding"] = updated_job_config.winding
+                    else:
+                        normalized["Winding"] = updated_job_config.winding
+                    
+                    # Update dimensions if they were corrected
+                    if "Width" in normalized:
+                        normalized["Width"] = float(updated_job_config.width)
+                    elif "width" in normalized:
+                        normalized["width"] = float(updated_job_config.width)
+                    else:
+                        normalized["Width"] = float(updated_job_config.width)
+                        
+                    if "Height" in normalized:
+                        normalized["Height"] = float(updated_job_config.height)
+                    elif "height" in normalized:
+                        normalized["height"] = float(updated_job_config.height)
+                    else:
+                        normalized["Height"] = float(updated_job_config.height)
+                    
+                    # Add rotation if it was applied
+                    if hasattr(updated_job_config, 'rotate_degrees') and updated_job_config.rotate_degrees is not None:
+                        if not any(k in config_dict for k in ("Rotate", "rotate", "Orientation")):
+                            normalized["Rotate"] = updated_job_config.rotate_degrees
+                    
+                    universal_normalized_json_bytes = json.dumps(normalized, ensure_ascii=False, indent=2).encode("utf-8")
+                except Exception as e:
+                    print(f"Warning: Failed to create universal normalized JSON: {e}")
+                    universal_normalized_json_bytes = None
 
             # Save original/normalized JSON next to processed output (once per config)
             if original_json_bytes is not None:
                 results_dir.mkdir(parents=True, exist_ok=True)
-                # Save exactly one JSON per configuration: prefer normalized reseller JSON when available.
-                json_bytes_to_write = normalized_json_bytes or original_json_bytes
+                # Prefer universal normalized JSON, then reseller normalized, then original
+                json_bytes_to_write = universal_normalized_json_bytes or normalized_json_bytes or original_json_bytes
                 json_stem = None
                 if chosen_json_path is not None:
                     json_stem = chosen_json_path.stem

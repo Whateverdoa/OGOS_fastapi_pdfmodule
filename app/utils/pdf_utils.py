@@ -285,16 +285,128 @@ class PDFUtils:
             return False
 
     @staticmethod
-    def rotate_pdf(input_path: str, output_path: str, angle: int) -> bool:
+    def rotate_pdf(
+        input_path: str,
+        output_path: str,
+        angle: int,
+        flatten: bool = False,
+    ) -> bool:
         """
         Rotate all pages by the given angle (0/90/180/270) and write to output.
-        Uses PyMuPDF's insert_pdf rotate to transform page content.
+        Uses PyMuPDF to transform page content. When flatten=True, the rotation
+        is applied into the page coordinate space so downstream consumers see
+        the updated mediabox/trimbox with swapped dimensions.
         """
         try:
+            if angle not in {0, 90, 180, 270}:
+                raise ValueError(f"angle must be one of {{0, 90, 180, 270}}, got {angle}")
+                
             src = fitz.open(input_path)
             dst = fitz.open()
-            dst.insert_pdf(src, rotate=angle)
-            dst.save(output_path)
+            
+            # Carry over metadata if possible
+            try:
+                dst.set_metadata(src.metadata)
+            except Exception:
+                pass
+            
+            for page in src:
+                rect = page.rect
+                
+                # Get original boxes if they exist
+                original_trimbox = None
+                original_bleedbox = None
+                original_artbox = None
+                try:
+                    original_trimbox = page.trimbox
+                except Exception:
+                    pass
+                try:
+                    original_bleedbox = page.bleedbox
+                except Exception:
+                    pass
+                try:
+                    original_artbox = page.artbox
+                except Exception:
+                    pass
+                
+                if flatten and angle in (90, 270):
+                    # Swap width/height for 90/270 degree rotations when flattening
+                    target_width = rect.height
+                    target_height = rect.width
+                else:
+                    target_width = rect.width
+                    target_height = rect.height
+
+                new_page = dst.new_page(width=target_width, height=target_height)
+                new_page.show_pdf_page(new_page.rect, src, page.number, rotate=angle)
+                
+                # Helper function to rotate a box
+                def rotate_box(box, orig_width, orig_height, rot_angle):
+                    """Rotate a box by the given angle."""
+                    if rot_angle == 90:
+                        # Rotate 90° clockwise: (x, y) -> (y, original_width - x)
+                        return fitz.Rect(
+                            box.y0,  # new x0 = original y0
+                            orig_width - box.x1,  # new y0 = original_width - original x1
+                            box.y1,  # new x1 = original y1
+                            orig_width - box.x0   # new y1 = original_width - original x0
+                        )
+                    elif rot_angle == 270:
+                        # Rotate 270° clockwise (or 90° counter-clockwise)
+                        # (x, y) -> (original_height - y, x)
+                        return fitz.Rect(
+                            orig_height - box.y1,  # new x0
+                            box.x0,  # new y0
+                            orig_height - box.y0,  # new x1
+                            box.x1   # new y1
+                        )
+                    elif rot_angle == 180:
+                        # Rotate 180°
+                        # (x, y) -> (original_width - x, original_height - y)
+                        return fitz.Rect(
+                            orig_width - box.x1,
+                            orig_height - box.y1,
+                            orig_width - box.x0,
+                            orig_height - box.y0
+                        )
+                    else:  # angle == 0
+                        return box
+                
+                # Preserve boxes after rotation
+                if flatten:
+                    original_width = rect.width
+                    original_height = rect.height
+                    
+                    # Preserve trimbox
+                    if original_trimbox:
+                        new_trimbox = rotate_box(original_trimbox, original_width, original_height, angle)
+                        try:
+                            new_page.set_trimbox(new_trimbox)
+                        except Exception:
+                            try:
+                                new_page.set_cropbox(new_trimbox)
+                            except Exception:
+                                pass
+                    
+                    # Preserve bleedbox
+                    if original_bleedbox:
+                        new_bleedbox = rotate_box(original_bleedbox, original_width, original_height, angle)
+                        try:
+                            new_page.set_bleedbox(new_bleedbox)
+                        except Exception:
+                            pass
+                    
+                    # Preserve artbox
+                    if original_artbox:
+                        new_artbox = rotate_box(original_artbox, original_width, original_height, angle)
+                        try:
+                            new_page.set_artbox(new_artbox)
+                        except Exception:
+                            pass
+
+            # Save with compression and cleanup
+            dst.save(output_path, deflate=True, garbage=4, clean=True)
             dst.close()
             src.close()
             return True

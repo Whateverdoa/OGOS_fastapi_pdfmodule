@@ -1,6 +1,6 @@
 import os
 import tempfile
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple, List
 from ..models.schemas import PDFJobConfig, ShapeType, FontMode
 from .pdf_analyzer import PDFAnalyzer
 from .shape_generators import ShapeGenerator
@@ -58,10 +58,31 @@ class PDFProcessor:
 
             # Step 1: Analyze the PDF
             analysis = self.analyzer.analyze_pdf(working_pdf_path)
+            original_trimbox_mm = analysis.get('trimbox')
+            
+            # Step 1.5: Pre-processing - dimension comparison and winding normalization
+            working_pdf_path, job_config, analysis, dimension_warnings = self._preprocess_dimensions_and_winding(
+                working_pdf_path, job_config, analysis
+            )
             
             # Get the appropriate box coordinates (trimbox or mediabox)
             # Convert back to points for shape generation
-            box_coords_mm = analysis.get('trimbox') or analysis.get('mediabox')
+            box_coords_mm = analysis.get('trimbox')
+            if not box_coords_mm:
+                mediabox_mm = analysis.get('mediabox')
+                if original_trimbox_mm and mediabox_mm:
+                    trim_width = abs(original_trimbox_mm['x1'] - original_trimbox_mm['x0'])
+                    trim_height = abs(original_trimbox_mm['y1'] - original_trimbox_mm['y0'])
+                    margin_x = original_trimbox_mm['x0']
+                    margin_y = original_trimbox_mm['y0']
+                    box_coords_mm = {
+                        'x0': margin_x,
+                        'y0': margin_y,
+                        'x1': margin_x + trim_width,
+                        'y1': margin_y + trim_height,
+                    }
+                else:
+                    box_coords_mm = mediabox_mm
             box_coords = {
                 'x0': box_coords_mm['x0'] * self.MM_TO_POINTS,
                 'y0': box_coords_mm['y0'] * self.MM_TO_POINTS,
@@ -81,7 +102,13 @@ class PDFProcessor:
                 except Exception:
                     winding_route = None
 
-            # Step 2: Process based on shape type
+            # Step 2: Validate trimbox matches job dimensions (after rotation/normalization)
+            trimbox_validation_warnings = self._validate_trimbox_dimensions(
+                box_coords_mm, job_config
+            )
+            dimension_warnings.extend(trimbox_validation_warnings)
+            
+            # Step 3: Process based on shape type
             if job_config.shape == ShapeType.custom:
                 # For custom shapes, keep the existing shape but rename spot color
                 output_path = self._process_custom_shape(
@@ -100,13 +127,15 @@ class PDFProcessor:
                 'reference': job_config.reference,
                 'output_path': output_path,
                 'analysis': analysis,
+                'updated_job_config': job_config,  # Include updated config for JSON normalization
                 'processing_details': {
                     'shape_type': job_config.shape,
                     'dimensions': f'{job_config.width}mm x {job_config.height}mm',
                     'spot_color': job_config.spot_color_name,
                     'line_thickness': job_config.line_thickness,
                     'winding': job_config.winding,
-                    'winding_route': winding_route
+                    'winding_route': winding_route,
+                    'dimension_warnings': dimension_warnings
                 }
             }
             
@@ -177,27 +206,6 @@ class PDFProcessor:
                 job_config.spot_color_name,
                 job_config.line_thickness
             )
-<<<<<<< HEAD
-        else:
-            import shutil
-            shutil.copy2(source_path, output_path)
-
-        # Final PyMuPDF compound-path normalization (also enforces stans/magenta/0.5pt)
-        self.pymupdf_compound_tool.process(output_path, output_path)
-
-        for temp_path in (rename_temp_path, compound_temp_path):
-            try:
-                if os.path.exists(temp_path):
-                    os.unlink(temp_path)
-            except Exception:
-                pass
-        
-        # Update spot color properties (ensure 100% magenta, overprint)
-        self.spot_color_handler.update_spot_color_properties(
-            output_path, output_path,
-            job_config.spot_color_name,
-            job_config.line_thickness
-        )
         
         # Optional: remove registration/crop marks (Separation/All)
         if getattr(job_config, 'remove_marks', False):
@@ -211,28 +219,6 @@ class PDFProcessor:
                 except Exception:
                     pass
 
-        # Optional: rotate artwork by winding if trimbox matches job size
-        try:
-            if getattr(job_config, 'winding', None) is not None:
-                angle = route_by_winding(job_config.winding)
-                # Compare trimbox to job dims (within tolerance)
-                tb = analysis.get('trimbox') or analysis.get('mediabox')
-                tw = abs(float(tb['x1']) - float(tb['x0'])) if tb else 0.0
-                th = abs(float(tb['y1']) - float(tb['y0'])) if tb else 0.0
-                tol = 1.0
-                dims_match = (abs(tw - float(job_config.width)) <= tol and abs(th - float(job_config.height)) <= tol)
-                if angle and angle % 360 != 0 and dims_match:
-                    temp_rot = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
-                    rot_path = temp_rot.name
-                    temp_rot.close()
-                    if self.pdf_utils.rotate_pdf(output_path, rot_path, angle):
-                        try:
-                            os.replace(rot_path, output_path)
-                        except Exception:
-                            pass
-        except Exception:
-            pass
-
         # Best-effort: font handling per job config with fallback to outline
         try:
             if getattr(job_config, 'fonts', FontMode.embed) == FontMode.outline:
@@ -245,7 +231,6 @@ class PDFProcessor:
         except Exception:
             pass
 
->>>>>>> origin/feature/rotation-fonts-marks
         return output_path
         
     def _process_standard_shape(
@@ -289,41 +274,27 @@ class PDFProcessor:
                     pass
                 clean_path = markless_path
 
-        # Optional: rotate the base artwork by winding before overlay (if size matches job)
-        try:
-            if getattr(job_config, 'winding', None) is not None:
-                angle = route_by_winding(job_config.winding)
-                tb = analysis.get('trimbox') or analysis.get('mediabox')
-                tw = abs(float(tb['x1']) - float(tb['x0'])) if tb else 0.0
-                th = abs(float(tb['y1']) - float(tb['y0'])) if tb else 0.0
-                tol = 1.0
-                dims_match = (abs(tw - float(job_config.width)) <= tol and abs(th - float(job_config.height)) <= tol)
-                if angle and angle % 360 != 0 and dims_match:
-                    temp_rot = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
-                    rot_path = temp_rot.name
-                    temp_rot.close()
-                    if self.pdf_utils.rotate_pdf(clean_path, rot_path, angle):
-                        try:
-                            os.unlink(clean_path)
-                        except Exception:
-                            pass
-                        clean_path = rot_path
-        except Exception:
-            pass
+        # Rotation is now handled in the pre-processing step
 
-        # Step 2: Generate new dieline shape
+        # Step 2: Generate new dieline shape using the current trimbox dimensions
+        box_coords_mm = analysis.get('trimbox') or analysis.get('mediabox')
+        if not box_coords_mm:
+            raise ValueError("No trimbox or mediabox available for dieline placement")
+        dieline_width_mm = abs(float(box_coords_mm['x1']) - float(box_coords_mm['x0']))
+        dieline_height_mm = abs(float(box_coords_mm['y1']) - float(box_coords_mm['y0']))
+        
         if job_config.shape == ShapeType.circle:
             dieline_path = self.shape_generator.create_circle_dieline(
-                job_config.width,
-                job_config.height,
+                dieline_width_mm,
+                dieline_height_mm,
                 box_coords,
                 job_config.spot_color_name,
                 job_config.line_thickness
             )
         else:  # rectangle
             dieline_path = self.shape_generator.create_rectangle_dieline(
-                job_config.width,
-                job_config.height,
+                dieline_width_mm,
+                dieline_height_mm,
                 job_config.radius,
                 box_coords,
                 job_config.spot_color_name,
@@ -377,9 +348,148 @@ class PDFProcessor:
                     self.pdf_utils.outline_all_fonts(output_path)
         except Exception:
             pass
->>>>>>> origin/feature/rotation-fonts-marks
 
         return output_path
+    
+    def _preprocess_dimensions_and_winding(
+        self, 
+        pdf_path: str, 
+        job_config: PDFJobConfig, 
+        analysis: Dict[str, Any]
+    ) -> Tuple[str, PDFJobConfig, Dict[str, Any], List[str]]:
+        """
+        Pre-process PDF to handle dimension comparison and winding normalization.
+        
+        Returns:
+            Tuple of (updated_pdf_path, updated_job_config, updated_analysis, warnings)
+        """
+        warnings = []
+        working_pdf_path = pdf_path
+        
+        # Get artwork dimensions from trimbox or mediabox
+        box_coords_mm = analysis.get('trimbox') or analysis.get('mediabox')
+        if not box_coords_mm:
+            warnings.append("No trimbox or mediabox found in PDF")
+            return working_pdf_path, job_config, analysis, warnings
+            
+        artwork_width = abs(box_coords_mm['x1'] - box_coords_mm['x0'])
+        artwork_height = abs(box_coords_mm['y1'] - box_coords_mm['y0'])
+        
+        # Compare with order dimensions (tolerance of 1mm)
+        tolerance = 1.0
+        order_width = float(job_config.width)
+        order_height = float(job_config.height)
+        
+        width_matches = abs(artwork_width - order_width) <= tolerance
+        height_matches = abs(artwork_height - order_height) <= tolerance
+        
+        # Check if dimensions match in swapped orientation
+        width_matches_swapped = abs(artwork_width - order_height) <= tolerance
+        height_matches_swapped = abs(artwork_height - order_width) <= tolerance
+        
+        dimensions_match = width_matches and height_matches
+        dimensions_match_swapped = width_matches_swapped and height_matches_swapped
+        
+        # Handle rotation logic - check for rotate_degrees from ZIP pipeline or winding
+        current_winding = getattr(job_config, 'winding', None)
+        rotate_degrees = getattr(job_config, 'rotate_degrees', None)
+        
+        # Determine rotation angle
+        rotation_angle = None
+        if rotate_degrees is not None:
+            # ZIP pipeline already determined rotation
+            rotation_angle = rotate_degrees
+            warnings.append(f"Using rotation from ZIP pipeline: {rotation_angle}°")
+        elif current_winding is not None and current_winding != 2:
+            # Direct winding processing
+            try:
+                rotation_angle = route_by_winding(current_winding)
+                warnings.append(f"Calculated rotation from winding {current_winding}: {rotation_angle}°")
+            except Exception as e:
+                warnings.append(f"Error calculating rotation from winding {current_winding}: {str(e)}")
+        
+        # Apply rotation if needed
+        if rotation_angle and rotation_angle % 360 != 0:
+            # Create rotated PDF
+            temp_rot = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
+            temp_rot_path = temp_rot.name
+            temp_rot.close()
+            
+            if self.pdf_utils.rotate_pdf(pdf_path, temp_rot_path, rotation_angle, flatten=True):
+                working_pdf_path = temp_rot_path
+                
+                # Re-analyze the rotated PDF to get flattened dimensions
+                analysis = self.analyzer.analyze_pdf(working_pdf_path)
+                
+                # Update job config dimensions to match the flattened PDF
+                box_coords_mm = analysis.get('trimbox') or analysis.get('mediabox')
+                if box_coords_mm:
+                    actual_width = abs(box_coords_mm['x1'] - box_coords_mm['x0'])
+                    actual_height = abs(box_coords_mm['y1'] - box_coords_mm['y0'])
+                    job_config.width = actual_width
+                    job_config.height = actual_height
+                    warnings.append(f"Rotated artwork {rotation_angle}° and updated dimensions to {actual_width:.1f}x{actual_height:.1f}mm")
+                else:
+                    warnings.append(f"Rotated artwork {rotation_angle}°")
+
+                # Normalize winding to 2
+                job_config.winding = 2
+                warnings.append("Normalized winding to 2")
+            else:
+                warnings.append(f"Failed to rotate PDF by {rotation_angle}°")
+        
+        # Check dimension match after any rotation or normalization
+        if not rotation_angle:
+            if not dimensions_match:
+                if dimensions_match_swapped:
+                    warnings.append(
+                        f"Artwork dimensions ({artwork_width:.1f}x{artwork_height:.1f}mm) are swapped compared to "
+                        f"order ({order_width:.1f}x{order_height:.1f}mm)"
+                    )
+                else:
+                    warnings.append(
+                        f"Artwork dimensions ({artwork_width:.1f}x{artwork_height:.1f}mm) don't match "
+                        f"order ({order_width:.1f}x{order_height:.1f}mm)"
+                    )
+        
+        return working_pdf_path, job_config, analysis, warnings
+    
+    def _validate_trimbox_dimensions(
+        self, 
+        box_coords_mm: Dict[str, float], 
+        job_config: PDFJobConfig
+    ) -> List[str]:
+        """
+        Validate that trimbox dimensions match job config dimensions after rotation/normalization.
+        
+        Returns:
+            List of warning messages
+        """
+        warnings = []
+        
+        if not box_coords_mm:
+            warnings.append("No trimbox found for dimension validation")
+            return warnings
+            
+        trimbox_width = abs(box_coords_mm['x1'] - box_coords_mm['x0'])
+        trimbox_height = abs(box_coords_mm['y1'] - box_coords_mm['y0'])
+        
+        order_width = float(job_config.width)
+        order_height = float(job_config.height)
+        
+        tolerance = 1.0  # 1mm tolerance
+        
+        width_matches = abs(trimbox_width - order_width) <= tolerance
+        height_matches = abs(trimbox_height - order_height) <= tolerance
+        
+        if not (width_matches and height_matches):
+            warnings.append(
+                f"Trimbox dimensions ({trimbox_width:.1f}x{trimbox_height:.1f}mm) "
+                f"don't match order dimensions ({order_width:.1f}x{order_height:.1f}mm) "
+                f"after rotation/normalization. Stans placement may be incorrect."
+            )
+        
+        return warnings
         
     def process_batch(self, pdf_paths: list, job_configs: list) -> list:
         """
