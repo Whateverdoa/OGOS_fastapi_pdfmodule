@@ -110,7 +110,9 @@ class ShapeProcessor:
         # Finalize
         self.pymupdf_compound_tool.process(output_path, output_path)
         self._prune_spot_colors(output_path, job_config.spot_color_name)
-        self._ensure_overprint(output_path, job_config.spot_color_name)
+        self._ensure_overprint(
+            output_path, job_config.spot_color_name, job_config.line_thickness
+        )
         self._apply_font_handling(output_path, job_config)
 
         return output_path
@@ -221,9 +223,19 @@ class ShapeProcessor:
         except Exception:
             pass
 
-    def _ensure_overprint(self, output_path: str, spot_name: str):
-        """Ensure overprint is enabled for the dieline spot."""
+    def _ensure_overprint(self, output_path: str, spot_name: str, line_thickness: float = 0.5):
+        """Ensure overprint is enabled for the dieline spot only.
+
+        Uses SpotColorHandler.update_spot_color_properties for content-stream
+        level overprint enforcement on stans strokes, then falls back to
+        ensure_overprint_for_spot for Form XObjects that explicitly use the spot.
+        """
         try:
+            # Content-stream level: inject overprint GS before stans strokes
+            self.spot_color_handler.update_spot_color_properties(
+                output_path, output_path, spot_name, line_thickness
+            )
+            # Form XObject level: patch forms that explicitly reference the spot
             self.pdf_utils.ensure_overprint_for_spot(output_path, spot_name)
         except Exception:
             pass

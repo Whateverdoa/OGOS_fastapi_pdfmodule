@@ -81,11 +81,22 @@ def test_update_spot_color_properties_enforces_magenta_overprint(tmp_path):
     assert tint_function[NameObject("/FunctionType")] == 2
     assert [float(x) for x in tint_function[NameObject("/C1")]] == [0.0, 1.0, 0.0, 0.0]
 
+    # Verify the stans-specific overprint ExtGState was created
     extgstate = resources["/ExtGState"].get_object()
-    gs = extgstate[NameObject("/GS0")].get_object()
-    assert bool(gs[NameObject("/OP")]) is True
-    assert bool(gs[NameObject("/op")]) is True
-    assert int(gs[NameObject("/OPM")]) == 1
+    stans_op_key = NameObject("/GS_STANS_OP")
+    assert stans_op_key in extgstate, "Stans overprint ExtGState should be created"
+    gs_stans = extgstate[stans_op_key]
+    if hasattr(gs_stans, "get_object"):
+        gs_stans = gs_stans.get_object()
+    assert bool(gs_stans[NameObject("/OP")]) is True
+    assert bool(gs_stans[NameObject("/op")]) is True
+    assert int(gs_stans[NameObject("/OPM")]) == 1
+
+    # Original GS0 should remain unchanged (not have overprint applied)
+    # Note: We don't modify existing ExtGStates, so GS0 keeps its original values
+    gs0 = extgstate[NameObject("/GS0")].get_object()
+    # The original GS0 had OP=False, op=False, OPM=0 - we verify it wasn't changed to OPM=1
+    assert int(gs0[NameObject("/OPM")]) == 0, "Original GS0 should not be modified"
 
     stream = page["/Contents"].get_object()
     data = stream.get_data().decode("latin-1")
