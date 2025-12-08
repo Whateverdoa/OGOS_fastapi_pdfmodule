@@ -11,6 +11,7 @@ from ..utils.universal_dieline_remover import UniversalDielineRemover
 from ..utils.stans_compound_path_converter import StansCompoundPathConverter
 from ..utils.pymupdf_compound_path_tool import PyMuPDFCompoundPathTool
 from ..utils.winding_router import route_by_winding, route_by_winding_str
+from ..utils.graphics_state_validator import GraphicsStateValidator
 
 
 class PDFProcessor:
@@ -28,6 +29,7 @@ class PDFProcessor:
         self.dieline_remover = UniversalDielineRemover()
         self.compound_converter = StansCompoundPathConverter()
         self.pymupdf_compound_tool = PyMuPDFCompoundPathTool()
+        self.graphics_validator = GraphicsStateValidator(debug=False)
         
     def process_pdf(self, pdf_path: str, job_config: PDFJobConfig) -> Dict[str, Any]:
         """
@@ -62,6 +64,31 @@ class PDFProcessor:
             # Get the appropriate box coordinates (trimbox or mediabox)
             # Convert back to points for shape generation
             box_coords_mm = analysis.get('trimbox') or analysis.get('mediabox')
+            
+            # Smart Dimension Swap: If config dimensions are transposed relative to the PDF, swap them
+            # This handles scenarios where Reseller Detection failed or Winding=2 (0 deg) prevents auto-rotation
+            if box_coords_mm:
+                pdf_w = abs(box_coords_mm['x1'] - box_coords_mm['x0'])
+                pdf_h = abs(box_coords_mm['y1'] - box_coords_mm['y0'])
+                
+                cfg_w = float(job_config.width)
+                cfg_h = float(job_config.height)
+                
+                tol = 1.0  # 1mm tolerance
+                
+                # Check for direct match first
+                direct_match = (abs(pdf_w - cfg_w) <= tol and abs(pdf_h - cfg_h) <= tol)
+                
+                if not direct_match:
+                    # Check for transposed match
+                    transposed_match = (abs(pdf_w - cfg_h) <= tol and abs(pdf_h - cfg_w) <= tol)
+                    
+                    if transposed_match:
+                        # Swap config dimensions to match PDF
+                        job_config.width = cfg_h
+                        job_config.height = cfg_w
+                        # Note: we don't change 'shape' enum (circle is symmetric, rectangle is generic)
+
             box_coords = {
                 'x0': box_coords_mm['x0'] * self.MM_TO_POINTS,
                 'y0': box_coords_mm['y0'] * self.MM_TO_POINTS,
@@ -177,7 +204,7 @@ class PDFProcessor:
                 job_config.spot_color_name,
                 job_config.line_thickness
             )
-<<<<<<< HEAD
+
         else:
             import shutil
             shutil.copy2(source_path, output_path)
@@ -211,17 +238,12 @@ class PDFProcessor:
                 except Exception:
                     pass
 
-        # Optional: rotate artwork by winding if trimbox matches job size
+        # Always rotate artwork by winding to ensure correct roll orientation (RW2)
         try:
             if getattr(job_config, 'winding', None) is not None:
                 angle = route_by_winding(job_config.winding)
-                # Compare trimbox to job dims (within tolerance)
-                tb = analysis.get('trimbox') or analysis.get('mediabox')
-                tw = abs(float(tb['x1']) - float(tb['x0'])) if tb else 0.0
-                th = abs(float(tb['y1']) - float(tb['y0'])) if tb else 0.0
-                tol = 1.0
-                dims_match = (abs(tw - float(job_config.width)) <= tol and abs(th - float(job_config.height)) <= tol)
-                if angle and angle % 360 != 0 and dims_match:
+                # Always apply winding rotation for correct roll placement
+                if angle and angle % 360 != 0:
                     temp_rot = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
                     rot_path = temp_rot.name
                     temp_rot.close()
@@ -245,7 +267,13 @@ class PDFProcessor:
         except Exception:
             pass
 
->>>>>>> origin/feature/rotation-fonts-marks
+        # Final safety check: validate and fix q/Q balance to prevent
+        # downstream PDF processors (like iText7) from crashing
+        try:
+            self.graphics_validator.validate_and_fix_pdf(output_path)
+        except Exception:
+            pass
+
         return output_path
         
     def _process_standard_shape(
@@ -289,16 +317,12 @@ class PDFProcessor:
                     pass
                 clean_path = markless_path
 
-        # Optional: rotate the base artwork by winding before overlay (if size matches job)
+        # Always rotate the base artwork by winding for correct roll orientation (RW2)
         try:
             if getattr(job_config, 'winding', None) is not None:
                 angle = route_by_winding(job_config.winding)
-                tb = analysis.get('trimbox') or analysis.get('mediabox')
-                tw = abs(float(tb['x1']) - float(tb['x0'])) if tb else 0.0
-                th = abs(float(tb['y1']) - float(tb['y0'])) if tb else 0.0
-                tol = 1.0
-                dims_match = (abs(tw - float(job_config.width)) <= tol and abs(th - float(job_config.height)) <= tol)
-                if angle and angle % 360 != 0 and dims_match:
+                # Always apply winding rotation for correct roll placement
+                if angle and angle % 360 != 0:
                     temp_rot = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
                     rot_path = temp_rot.name
                     temp_rot.close()
@@ -312,13 +336,23 @@ class PDFProcessor:
             pass
 
         # Step 2: Generate new dieline shape
+        # Get mediabox from analysis to ensure overlay PDF matches base PDF size
+        mediabox_mm = analysis.get('mediabox') or analysis.get('trimbox')
+        mediabox_coords = {
+            'x0': mediabox_mm['x0'] * self.MM_TO_POINTS,
+            'y0': mediabox_mm['y0'] * self.MM_TO_POINTS,
+            'x1': mediabox_mm['x1'] * self.MM_TO_POINTS,
+            'y1': mediabox_mm['y1'] * self.MM_TO_POINTS
+        }
+        
         if job_config.shape == ShapeType.circle:
             dieline_path = self.shape_generator.create_circle_dieline(
                 job_config.width,
                 job_config.height,
                 box_coords,
                 job_config.spot_color_name,
-                job_config.line_thickness
+                job_config.line_thickness,
+                mediabox_coords  # Pass mediabox for canvas size
             )
         else:  # rectangle
             dieline_path = self.shape_generator.create_rectangle_dieline(
@@ -327,7 +361,8 @@ class PDFProcessor:
                 job_config.radius,
                 box_coords,
                 job_config.spot_color_name,
-                job_config.line_thickness
+                job_config.line_thickness,
+                mediabox_coords  # Pass mediabox for canvas size
             )
             
         # Step 3: Merge the clean PDF with the new dieline
@@ -377,7 +412,13 @@ class PDFProcessor:
                     self.pdf_utils.outline_all_fonts(output_path)
         except Exception:
             pass
->>>>>>> origin/feature/rotation-fonts-marks
+
+        # Final safety check: validate and fix q/Q balance to prevent
+        # downstream PDF processors (like iText7) from crashing
+        try:
+            self.graphics_validator.validate_and_fix_pdf(output_path)
+        except Exception:
+            pass
 
         return output_path
         

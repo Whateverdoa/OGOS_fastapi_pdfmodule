@@ -361,7 +361,12 @@ class UniversalDielineRemover:
     
     def _find_dieline_sequence_end(self, lines: List[str], start_idx: int) -> int:
         """
-        Find the end of a dieline sequence starting from dieline color space usage
+        Find the end of a dieline sequence starting from dieline color space usage.
+        
+        IMPORTANT: This now tracks q/Q balance to ensure that any q operators
+        inside the dieline sequence have their matching Q operators also removed.
+        This prevents graphics state stack underflow (more Q's than q's) in downstream
+        PDF processors like iText7.
         """
         if start_idx >= len(lines) - 1:
             return -1
@@ -369,9 +374,25 @@ class UniversalDielineRemover:
         i = start_idx + 1
         found_color = False
         found_path = False
+        q_depth = 0  # Track nested q/Q inside the dieline sequence
+        stroke_index = -1  # Index where we found the stroke command
         
-        while i < len(lines) and i < start_idx + 25:  # Reasonable limit
+        while i < len(lines) and i < start_idx + 50:  # Increased limit for q/Q matching
             line = lines[i].strip()
+            
+            # Track q depth inside the sequence (before stroke)
+            if stroke_index < 0:  # Before finding stroke
+                if line == 'q':
+                    q_depth += 1
+                    if self.debug:
+                        print(f"  Found nested q at {i}, depth now {q_depth}")
+                elif line == 'Q':
+                    if q_depth > 0:
+                        q_depth -= 1
+                        if self.debug:
+                            print(f"  Found matching Q at {i}, depth now {q_depth}")
+                    # Q without matching q means we're outside our sequence
+                    # Don't increment depth below 0, just ignore
             
             # Look for color value (like "1 SCN")
             if re.match(r'^[\d.\s]+SCN\s*$', line) and not found_color:
@@ -385,28 +406,62 @@ class UniversalDielineRemover:
                   re.match(r'^[\d.\-\s]*$', line)):
                 found_path = True
             
-            # Look for stroke/fill commands that end the sequence
+            # Look for stroke/fill commands that end the main sequence
             elif line in ['S', 's', 'f', 'F', 'f*', 'F*', 'B', 'b', 'B*', 'b*', 'n']:
-                if found_color:
-                    if self.debug:
-                        print(f"  Found drawing command: {line}")
-                    return i
-                else:
-                    return -1  # Drawing without our color
+                if stroke_index < 0:  # First stroke command
+                    if found_color:
+                        if self.debug:
+                            print(f"  Found drawing command at {i}: {line}, q_depth={q_depth}")
+                        stroke_index = i
+                        # If no nested q's, we're done
+                        if q_depth == 0:
+                            return i
+                        # Otherwise continue to consume matching Q's
+                    else:
+                        return -1  # Drawing without our color
             
-            # Graphics state changes
-            elif line in ['q', 'Q'] or line.endswith(' gs'):
-                # These don't necessarily break our sequence
+            # After finding stroke, consume matching Q's for nested q's
+            elif stroke_index >= 0:
+                if line == 'Q':
+                    q_depth -= 1
+                    if self.debug:
+                        print(f"  Consuming Q at {i} for nested q, depth now {q_depth}")
+                    if q_depth <= 0:
+                        # All nested q's are now matched, return this index
+                        return i
+                elif line == 'q':
+                    # Another q after stroke? This is a new sequence, stop here
+                    return i - 1
+                elif line.endswith(' gs') or re.match(r'^[\d.\-\s]*$', line):
+                    # Allow graphics state or empty lines between S and Q
+                    pass
+                else:
+                    # Unknown content after stroke, stop before it
+                    # But only if we've consumed all nested Q's
+                    if q_depth <= 0:
+                        return stroke_index
+                    else:
+                        # Must continue to find matching Q's
+                        pass
+            
+            # Graphics state changes (before stroke found)
+            elif line.endswith(' gs'):
+                # Graphics state operators don't break our sequence
                 pass
             
             # Other commands might break the sequence
-            elif not re.match(r'^[\d.\-\s]*$', line) and line not in ['h']:
-                if found_color:
+            elif not re.match(r'^[\d.\-\s]*$', line) and line not in ['h', 'q', 'Q']:
+                if found_color and stroke_index < 0:
                     return i - 1  # End before this command
-                else:
+                elif not found_color:
                     return -1  # Invalid sequence
             
             i += 1
+        
+        # If we found stroke but still have unmatched q's, return stroke index
+        # (conservative approach - don't remove beyond what we're sure about)
+        if stroke_index >= 0:
+            return stroke_index
         
         return -1  # Sequence not found
     

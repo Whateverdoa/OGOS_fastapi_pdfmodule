@@ -35,7 +35,11 @@ def _normalize_shape(value: str | None) -> str | None:
 from ...core.pdf_processor import PDFProcessor
 from ...core.pdf_analyzer import PDFAnalyzer
 from ...core.config import settings
+from ...core.pdf_processor import PDFProcessor
+from ...core.pdf_analyzer import PDFAnalyzer
+from ...core.config import settings
 from ...utils.winding_router import route_by_winding, route_by_winding_str
+from ...utils.file_manager import FileManager
 
 
 router = APIRouter(prefix="/api/pdf", tags=["pdf"])
@@ -90,6 +94,11 @@ def _detect_reseller(context_text: str, config: Dict[str, object]) -> bool:
         val = config.get(key)
         if isinstance(val, str) and any(k in val.lower() for k in keywords):
             return True
+            
+    # If Winding is present, assume reseller (as verified by user: "only files coming through are resellers")
+    if "Winding" in config or "winding" in config:
+        return True
+        
     return False
 
 
@@ -179,6 +188,16 @@ async def process_pdf(
             temp_input_path = temp_file.name
             shutil.copyfileobj(pdf_file.file, temp_file)
 
+        # Save original file for retention
+        file_manager = FileManager()
+        file_manager.save_original(temp_input_path, pdf_file.filename)
+        
+        # Trigger cleanup (best effort)
+        try:
+            file_manager.cleanup_old_files()
+        except Exception:
+            pass
+
         # Process PDF
         processor = PDFProcessor()
         result = processor.process_pdf(temp_input_path, job_config_obj)
@@ -256,6 +275,9 @@ async def process_pdf(
                     pass
 
                 return JSONResponse(content=payload.model_dump())
+
+            # Save processed file for retention
+            file_manager.save_processed(output_path, output_filename)
 
             return FileResponse(
                 output_path,
@@ -361,25 +383,26 @@ async def process_pdf_with_json_file(
         )
 
         # Rotation logic: explicit wins; else if reseller and winding provided, map from winding
+        # NOTE: We do NOT swap dimensions - the winding rotation in pdf_processor handles
+        # transforming the PDF to match the job dimensions. The output JSON keeps original dims.
         applied_rotation = None
+        original_winding = job_config_data.get('winding')
         if explicit_rotate is not None:
             applied_rotation = explicit_rotate if explicit_rotate in (0, 90, 180, 270) else 0
-        elif reseller_detected and job_config_data.get('winding') is not None:
+        elif reseller_detected and original_winding is not None:
             try:
-                applied_rotation = route_by_winding_str(job_config_data['winding'])  # type: ignore[index]
+                applied_rotation = route_by_winding_str(original_winding)  # type: ignore[index]
             except Exception:
                 applied_rotation = None
-        if applied_rotation is not None:
-            job_config_data['rotate_degrees'] = applied_rotation
-        if reseller_detected and applied_rotation in (90, 270):
-            job_config_data['width'], job_config_data['height'] = (
-                job_config_data['height'],
-                job_config_data['width'],
-            )
-
-        # Force reseller winding normalization to 2
+        
+        # Don't set rotate_degrees - let winding rotation in pdf_processor handle it
+        # The processor now always applies winding rotation for RW2 orientation
+        
+        # Force reseller winding normalization to 2 AFTER rotation is determined
+        # but keep original winding for the processor to use for rotation
         if reseller_detected:
-            job_config_data['winding'] = 2
+            # Store original winding for processor, output will use 2
+            pass  # winding stays as-is for processor rotation
 
         job_config_obj = PDFJobConfig(**job_config_data)
         
@@ -405,6 +428,16 @@ async def process_pdf_with_json_file(
             temp_input_path = temp_file.name
             pdf_content = await pdf_file.read()
             temp_file.write(pdf_content)
+            
+        # Save original file for retention
+        file_manager = FileManager()
+        file_manager.save_original(temp_input_path, pdf_file.filename)
+        
+        # Trigger cleanup (best effort)
+        try:
+            file_manager.cleanup_old_files()
+        except Exception:
+            pass
             
         # Process PDF
         processor = PDFProcessor()
@@ -484,6 +517,42 @@ async def process_pdf_with_json_file(
                     pass
 
                 return JSONResponse(content=payload.model_dump())
+
+            # Save processed file for retention
+            file_manager.save_processed(output_path, output_filename)
+            
+            # Save JSON config if available - for resellers, normalize winding to 2
+            if 'config_dict' in locals() and 'job_config_obj' in locals():
+                try:
+                    # Create normalized JSON from original config
+                    normalized_json = dict(config_dict)
+                    
+                    # Keep original dimensions (they match the processed PDF after rotation)
+                    # Don't update Width/Height - they're already correct
+                    
+                    # For resellers, set winding=2 (RW2 orientation - file is ready to use)
+                    if 'reseller_detected' in locals() and reseller_detected:
+                        if "Winding" in normalized_json:
+                            normalized_json["Winding"] = 2
+                        if "winding" in normalized_json:
+                            normalized_json["winding"] = 2
+                        # Remove rotation field since file is already rotated
+                        for rot_key in ("Rotate", "rotate", "Orientation", "Rotation"):
+                            normalized_json.pop(rot_key, None)
+
+                    json_filename = f"{os.path.splitext(output_filename)[0]}.json"
+                    json_content = json.dumps(normalized_json, indent=2, ensure_ascii=False)
+                    
+                    # Write to temp file first
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.json', mode='w', encoding='utf-8') as tf:
+                        tf.write(json_content)
+                        tf_path = tf.name
+                    
+                    file_manager.save_processed(tf_path, json_filename)
+                    os.unlink(tf_path)
+                except Exception as e:
+                    print(f"Error saving processed JSON: {e}")
+                    pass
 
             return FileResponse(
                 output_path,
@@ -663,57 +732,31 @@ async def process_zip(
                         "adhesive": config_dict.get("Adhesive", config_dict.get("adhesive")),
                         "colors": config_dict.get("Colors", config_dict.get("colors")),
                     }
-                    # Reseller auto-rotation if no explicit rotate
+                    # Reseller detection - winding rotation handled by pdf_processor
                     reseller_detected = _detect_reseller(zip_basename, config_dict)  # type: ignore[arg-type]
-                    applied_rotation: Optional[int] = None
-                    if explicit_rotate is not None:
-                        applied_rotation = explicit_rotate if explicit_rotate in (0, 90, 180, 270) else 0
-                    elif reseller_detected and job_config_data.get("winding") is not None:
-                        try:
-                            applied_rotation = route_by_winding_str(job_config_data["winding"])  # type: ignore[arg-type]
-                        except Exception:
-                            applied_rotation = None
-                    swap_dimensions = reseller_detected and applied_rotation in (90, 270)
-                    if applied_rotation is not None:
-                        job_config_data["rotate_degrees"] = applied_rotation
-                    if swap_dimensions:
-                        job_config_data["width"], job_config_data["height"] = (
-                            job_config_data["height"],
-                            job_config_data["width"],
-                        )
-                    # Force reseller winding normalization to 2 (after applying rotation)
-                    if reseller_detected:
-                        job_config_data["winding"] = 2
+                    
+                    # Don't swap dimensions or set rotate_degrees - let pdf_processor handle
+                    # winding-based rotation. This keeps original dimensions for dieline generation.
+                    # The processor will rotate the PDF to match the job dimensions.
 
                     job_config_obj = PDFJobConfig(**job_config_data)
 
-                    # Prepare normalized JSON for reseller: set winding=2 and applied rotation if any
+                    # Prepare normalized JSON for reseller: set winding=2, keep original dimensions
                     normalized_json_bytes = None
                     if reseller_detected:
                         try:
                             normalized = dict(config_dict)
-                            # Set winding to 2 using existing key if present
+                            # Set winding to 2 (RW2 - file is ready to use after processing)
                             if "Winding" in normalized:
                                 normalized["Winding"] = 2
                             elif "winding" in normalized:
                                 normalized["winding"] = 2
                             else:
                                 normalized["Winding"] = 2
-                            # Set rotation if applied and not explicitly provided
-                            if applied_rotation is not None:
-                                if not any(k in config_dict for k in ("Rotate", "rotate", "Orientation")):
-                                    normalized["Rotate"] = applied_rotation
-                            if swap_dimensions:
-                                swapped_width = job_config_data["width"]
-                                swapped_height = job_config_data["height"]
-                                if "Width" in normalized:
-                                    normalized["Width"] = swapped_width
-                                if "width" in normalized:
-                                    normalized["width"] = swapped_width
-                                if "Height" in normalized:
-                                    normalized["Height"] = swapped_height
-                                if "height" in normalized:
-                                    normalized["height"] = swapped_height
+                            # Remove rotation fields since file is already rotated
+                            for rot_key in ("Rotate", "rotate", "Orientation", "Rotation"):
+                                normalized.pop(rot_key, None)
+                            # Keep original Width/Height - they match the processed PDF
                             normalized_json_bytes = json.dumps(normalized, ensure_ascii=False, indent=2).encode("utf-8")
                         except Exception as e:
                             print(f"Warning: Failed to create normalized JSON for reseller: {e}")
