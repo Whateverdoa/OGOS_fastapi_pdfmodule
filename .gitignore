@@ -189,6 +189,10 @@ FINAL_*.pdf
 WORKING_*.pdf
 FIXED_*.pdf
 
+# Binary artifacts
+*.zip
+*.pdf
+
 # FastAPI logs
 fastapi.log
 uvicorn.log
