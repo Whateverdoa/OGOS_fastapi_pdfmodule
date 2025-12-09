@@ -16,6 +16,9 @@ services:
       - PORT=8000
     ports:
       - "8000:8000"
+    volumes:
+      # PDF storage for file retention (original/processed files)
+      - ./pdf_storage:/app/pdf_storage
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]

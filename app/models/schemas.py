@@ -123,3 +123,10 @@ class WindingRouteResponse(BaseModel):
     """Response for winding routing endpoint"""
     winding_value: str = Field(..., description="Original input winding value")
     route: int = Field(..., description="Mapped route angle (0, 90, 180, 270)")
+
+
+class WindingDiagnosticsResponse(BaseModel):
+    """Response for winding diagnostics endpoint"""
+    order_reference: str = Field(..., description="Order reference being analyzed")
+    files: Dict[str, Any] = Field(..., description="Files found for this order")
+    analysis: Dict[str, Any] = Field(..., description="Winding flow analysis")

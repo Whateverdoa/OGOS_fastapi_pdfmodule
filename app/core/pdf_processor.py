@@ -85,9 +85,12 @@ class PDFProcessor:
                     
                     if transposed_match:
                         # Swap config dimensions to match PDF
+                        print(f"Smart Swap: PDF ({pdf_w:.1f}x{pdf_h:.1f}) matches swapped Config ({cfg_w:.1f}x{cfg_h:.1f}). Swapping config to {cfg_h}x{cfg_w}.")
                         job_config.width = cfg_h
                         job_config.height = cfg_w
                         # Note: we don't change 'shape' enum (circle is symmetric, rectangle is generic)
+                    else:
+                        print(f"Dimensions mismatch: PDF ({pdf_w:.1f}x{pdf_h:.1f}) != Config ({cfg_w:.1f}x{cfg_h:.1f})")
 
             box_coords = {
                 'x0': box_coords_mm['x0'] * self.MM_TO_POINTS,
@@ -108,16 +111,19 @@ class PDFProcessor:
                 except Exception:
                     winding_route = None
 
+            # Container for metadata collected during processing (e.g. rotation info)
+            processing_metadata = {}
+
             # Step 2: Process based on shape type
             if job_config.shape == ShapeType.custom:
                 # For custom shapes, keep the existing shape but rename spot color
                 output_path = self._process_custom_shape(
-                    working_pdf_path, job_config, analysis
+                    working_pdf_path, job_config, analysis, processing_metadata
                 )
             else:
                 # For circle and rectangle, remove old dieline and add new one
                 output_path = self._process_standard_shape(
-                    working_pdf_path, job_config, analysis, box_coords
+                    working_pdf_path, job_config, analysis, box_coords, processing_metadata
                 )
                 
             # Step 3: Prepare response
@@ -133,7 +139,9 @@ class PDFProcessor:
                     'spot_color': job_config.spot_color_name,
                     'line_thickness': job_config.line_thickness,
                     'winding': job_config.winding,
-                    'winding_route': winding_route
+                    'winding_route': winding_route,
+                    # Merge collected metadata
+                    **processing_metadata
                 }
             }
             
@@ -154,7 +162,8 @@ class PDFProcessor:
         self,
         pdf_path: str,
         job_config: PDFJobConfig,
-        analysis: Dict[str, Any]
+        analysis: Dict[str, Any],
+        processing_metadata: Dict[str, Any]
     ) -> str:
         """
         Process custom shape - keep existing shape but rename spot color
@@ -197,14 +206,8 @@ class PDFProcessor:
         )
 
         if success:
-            # Update spot color properties (ensure 100% magenta, overprint)
-            self.spot_color_handler.update_spot_color_properties(
-                output_path,
-                output_path,
-                job_config.spot_color_name,
-                job_config.line_thickness
-            )
-
+            # Success - continue with processing
+            pass
         else:
             import shutil
             shutil.copy2(source_path, output_path)
@@ -220,6 +223,7 @@ class PDFProcessor:
                 pass
         
         # Update spot color properties (ensure 100% magenta, overprint)
+        # This is called once after all processing is complete
         self.spot_color_handler.update_spot_color_properties(
             output_path, output_path,
             job_config.spot_color_name,
@@ -239,9 +243,12 @@ class PDFProcessor:
                     pass
 
         # Always rotate artwork by winding to ensure correct roll orientation (RW2)
+        rotation_applied = False
+        rotation_angle = None
         try:
             if getattr(job_config, 'winding', None) is not None:
                 angle = route_by_winding(job_config.winding)
+                rotation_angle = angle
                 # Always apply winding rotation for correct roll placement
                 if angle and angle % 360 != 0:
                     temp_rot = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
@@ -250,10 +257,18 @@ class PDFProcessor:
                     if self.pdf_utils.rotate_pdf(output_path, rot_path, angle):
                         try:
                             os.replace(rot_path, output_path)
-                        except Exception:
-                            pass
-        except Exception:
-            pass
+                            rotation_applied = True
+                        except Exception as e:
+                            print(f"Warning: Failed to replace rotated PDF: {e}")
+                    else:
+                        print(f"Warning: PDF rotation failed for angle {angle}°")
+        except Exception as e:
+            print(f"Warning: Exception during rotation: {e}")
+        
+        # Store rotation info in processing metadata
+        if processing_metadata is not None:
+            processing_metadata['rotation_applied'] = rotation_applied
+            processing_metadata['rotation_angle'] = rotation_angle
 
         # Best-effort: font handling per job config with fallback to outline
         try:
@@ -281,7 +296,8 @@ class PDFProcessor:
         pdf_path: str,
         job_config: PDFJobConfig,
         analysis: Dict[str, Any],
-        box_coords: Dict[str, float]
+        box_coords: Dict[str, float],
+        processing_metadata: Dict[str, Any]
     ) -> str:
         """
         Process standard shapes (circle/rectangle) - remove old and add new dieline
@@ -318,9 +334,12 @@ class PDFProcessor:
                 clean_path = markless_path
 
         # Always rotate the base artwork by winding for correct roll orientation (RW2)
+        rotation_applied = False
+        rotation_angle = None
         try:
             if getattr(job_config, 'winding', None) is not None:
                 angle = route_by_winding(job_config.winding)
+                rotation_angle = angle
                 # Always apply winding rotation for correct roll placement
                 if angle and angle % 360 != 0:
                     temp_rot = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
@@ -332,8 +351,16 @@ class PDFProcessor:
                         except Exception:
                             pass
                         clean_path = rot_path
-        except Exception:
-            pass
+                        rotation_applied = True
+                    else:
+                        print(f"Warning: PDF rotation failed for angle {angle}°")
+        except Exception as e:
+            print(f"Warning: Exception during rotation: {e}")
+        
+        # Store rotation info in processing metadata
+        if processing_metadata is not None:
+            processing_metadata['rotation_applied'] = rotation_applied
+            processing_metadata['rotation_angle'] = rotation_angle
 
         # Step 2: Generate new dieline shape
         # Get mediabox from analysis to ensure overlay PDF matches base PDF size

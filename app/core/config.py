@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     max_file_size: int = 100 * 1024 * 1024  # 100MB
     allowed_file_types: list = [".pdf", ".PDF"]
     temp_dir: str = "/tmp/pdf_processor"
+    storage_dir: str = "pdf_storage"
+    retention_days: int = 7
     
     # Processing Settings
     default_spot_color: str = "stans"

@@ -14,7 +14,10 @@ services:
       - pdf_uploads:/app/uploads
       - pdf_outputs:/app/outputs
       - pdf_temp:/app/temp
+      # PDF storage for file retention (original/processed files)
+      - ./pdf_storage:/app/pdf_storage
     environment:
+      - PORT=8080
       - API_TITLE=PDF Dieline Processor
       - API_VERSION=1.0.0
       - API_DESCRIPTION=Process PDF files with dieline management

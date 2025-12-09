@@ -40,9 +40,14 @@ class PDFUtils:
             base_page = base_doc[0]
             overlay_page = overlay_doc[0]
             
+            # Use mediabox for placement to ensure proper scaling
+            # The overlay PDF should have been created with the same mediabox size
+            # as the base PDF to avoid scaling issues
+            placement_rect = base_page.mediabox
+            
             # Insert the overlay page content into the base page
             base_page.show_pdf_page(
-                base_page.rect,  # Where to place it
+                placement_rect,  # Where to place it (use mediabox to match overlay PDF size)
                 overlay_doc,     # Source document
                 0,               # Source page number
                 overlay=True     # Overlay mode

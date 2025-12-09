@@ -11,7 +11,7 @@ import tempfile
 import shutil
 from ...models.schemas import (
     PDFJobConfig, PDFAnalysisResult, PDFProcessingResponse,
-    ErrorResponse, ShapeType, WindingRouteResponse, FontMode
+    ErrorResponse, ShapeType, WindingRouteResponse, WindingDiagnosticsResponse, FontMode
 )
 
 # Helper: normalize incoming shape strings (synonyms -> enum values)
@@ -32,14 +32,13 @@ def _normalize_shape(value: str | None) -> str | None:
         'ellipse': 'circle',
     }
     return mapping.get(s, s)
-from ...core.pdf_processor import PDFProcessor
-from ...core.pdf_analyzer import PDFAnalyzer
-from ...core.config import settings
+
 from ...core.pdf_processor import PDFProcessor
 from ...core.pdf_analyzer import PDFAnalyzer
 from ...core.config import settings
 from ...utils.winding_router import route_by_winding, route_by_winding_str
 from ...utils.file_manager import FileManager
+from ...utils.winding_diagnostics import WindingDiagnostics
 
 
 router = APIRouter(prefix="/api/pdf", tags=["pdf"])
@@ -162,6 +161,12 @@ async def process_pdf(
         if 'shape' in config_dict:
             config_dict['shape'] = _normalize_shape(config_dict.get('shape'))
         job_config_obj = PDFJobConfig(**config_dict)
+        
+        # Detect reseller for header purposes (has Winding key or Print.com supplier)
+        reseller_detected = _detect_reseller(
+            pdf_file.filename or "",  # type: ignore[arg-type]
+            config_dict  # type: ignore[arg-type]
+        )
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=400, detail=f"Invalid JSON in job_config: {str(e)}")
     except Exception as e:
@@ -217,24 +222,32 @@ async def process_pdf(
             }
             
             # Add winding route information
-            winding_route = (
-                result.get('processing_details', {}).get('winding_route')
-                if isinstance(result.get('processing_details'), dict) else None
-            )
+            processing_details = result.get('processing_details', {}) if isinstance(result.get('processing_details'), dict) else {}
+            winding_route = processing_details.get('winding_route')
             if winding_route is not None:
                 headers['X-Winding-Route'] = str(winding_route)
+            
+            # Add rotation verification information
+            rotation_applied = processing_details.get('rotation_applied')
+            rotation_angle = processing_details.get('rotation_angle')
+            if rotation_applied is not None:
+                headers['X-Rotation-Applied'] = 'true' if rotation_applied else 'false'
+            if rotation_angle is not None:
+                headers['X-Rotation-Actual'] = str(rotation_angle)
             
             # Add winding information if available
             if hasattr(job_config_obj, 'winding') and job_config_obj.winding is not None:
                 try:
                     rotation_angle = route_by_winding(job_config_obj.winding)
+                    # Winding value is kept as-is - upstream system will handle rotation
                     headers['X-Winding-Value'] = str(job_config_obj.winding)
                     headers['X-Rotation-Angle'] = str(rotation_angle)
                     headers['X-Needs-Rotation'] = 'true' if rotation_angle != 0 else 'false'
-                except ValueError:
+                    headers['X-Should-Swap-Dimensions'] = 'true' if rotation_angle in (90, 270) else 'false'
+                except ValueError as e:
                     # Invalid winding value, add header but no rotation info
                     headers['X-Winding-Value'] = str(job_config_obj.winding)
-                    headers['X-Winding-Error'] = 'Invalid winding value'
+                    headers['X-Winding-Error'] = f'Invalid winding value: {str(e)}'
 
             analysis_payload = result.get('analysis')
             analysis_model = (
@@ -314,6 +327,49 @@ async def get_route_by_winding(winding_value: str):
         return WindingRouteResponse(winding_value=str(winding_value), route=route)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/diagnose-winding/{order_reference}", response_model=WindingDiagnosticsResponse)
+async def diagnose_winding(order_reference: str):
+    """
+    Diagnostic endpoint to trace winding values for a specific order.
+    
+    Analyzes stored files and JSON configurations to understand:
+    - What winding value was received from the converter
+    - What rotation angle was calculated
+    - How winding was normalized for output
+    - Expected dimension swapping behavior
+    
+    Useful for debugging issues where winding values don't match expectations.
+    
+    Args:
+        order_reference: Order reference (e.g., "6001949316-2")
+        
+    Returns:
+        Complete diagnostic report with file locations and winding flow analysis
+    """
+    try:
+        diagnostics = WindingDiagnostics()
+        report = diagnostics.analyze_order(order_reference)
+        
+        if not report["files"]["found"]:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No files found for order reference: {order_reference}"
+            )
+        
+        return WindingDiagnosticsResponse(
+            order_reference=report["order_reference"],
+            files=report["files"],
+            analysis=report["analysis"]
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error analyzing order: {str(e)}"
+        )
 
 
 @router.post("/process-with-json-file")
@@ -398,11 +454,11 @@ async def process_pdf_with_json_file(
         # Don't set rotate_degrees - let winding rotation in pdf_processor handle it
         # The processor now always applies winding rotation for RW2 orientation
         
-        # Force reseller winding normalization to 2 AFTER rotation is determined
-        # but keep original winding for the processor to use for rotation
+        # Keep original winding value - upstream system will handle rotation
+        # We rotate the PDF here, but preserve winding metadata for upstream
         if reseller_detected:
-            # Store original winding for processor, output will use 2
-            pass  # winding stays as-is for processor rotation
+            # Winding stays as-is - both for processor rotation and output JSON
+            pass
 
         job_config_obj = PDFJobConfig(**job_config_data)
         
@@ -458,24 +514,32 @@ async def process_pdf_with_json_file(
             }
             
             # Add winding route information
-            winding_route = (
-                result.get('processing_details', {}).get('winding_route')
-                if isinstance(result.get('processing_details'), dict) else None
-            )
+            processing_details = result.get('processing_details', {}) if isinstance(result.get('processing_details'), dict) else {}
+            winding_route = processing_details.get('winding_route')
             if winding_route is not None:
                 headers['X-Winding-Route'] = str(winding_route)
+            
+            # Add rotation verification information
+            rotation_applied = processing_details.get('rotation_applied')
+            rotation_angle = processing_details.get('rotation_angle')
+            if rotation_applied is not None:
+                headers['X-Rotation-Applied'] = 'true' if rotation_applied else 'false'
+            if rotation_angle is not None:
+                headers['X-Rotation-Actual'] = str(rotation_angle)
             
             # Add winding information if available
             if hasattr(job_config_obj, 'winding') and job_config_obj.winding is not None:
                 try:
                     rotation_angle = route_by_winding(job_config_obj.winding)
+                    # Winding value is kept as-is - upstream system will handle rotation
                     headers['X-Winding-Value'] = str(job_config_obj.winding)
                     headers['X-Rotation-Angle'] = str(rotation_angle)
                     headers['X-Needs-Rotation'] = 'true' if rotation_angle != 0 else 'false'
-                except ValueError:
+                    headers['X-Should-Swap-Dimensions'] = 'true' if rotation_angle in (90, 270) else 'false'
+                except ValueError as e:
                     # Invalid winding value, add header but no rotation info
                     headers['X-Winding-Value'] = str(job_config_obj.winding)
-                    headers['X-Winding-Error'] = 'Invalid winding value'
+                    headers['X-Winding-Error'] = f'Invalid winding value: {str(e)}'
 
             analysis_payload = result.get('analysis')
             analysis_model = (
@@ -521,7 +585,7 @@ async def process_pdf_with_json_file(
             # Save processed file for retention
             file_manager.save_processed(output_path, output_filename)
             
-            # Save JSON config if available - for resellers, normalize winding to 2
+            # Save JSON config if available - keep original winding value
             if 'config_dict' in locals() and 'job_config_obj' in locals():
                 try:
                     # Create normalized JSON from original config
@@ -530,13 +594,10 @@ async def process_pdf_with_json_file(
                     # Keep original dimensions (they match the processed PDF after rotation)
                     # Don't update Width/Height - they're already correct
                     
-                    # For resellers, set winding=2 (RW2 orientation - file is ready to use)
+                    # Keep original winding value - upstream system will handle rotation
+                    # We rotate the PDF here, but leave winding as-is for upstream processing
+                    # Remove rotation field since file is already rotated
                     if 'reseller_detected' in locals() and reseller_detected:
-                        if "Winding" in normalized_json:
-                            normalized_json["Winding"] = 2
-                        if "winding" in normalized_json:
-                            normalized_json["winding"] = 2
-                        # Remove rotation field since file is already rotated
                         for rot_key in ("Rotate", "rotate", "Orientation", "Rotation"):
                             normalized_json.pop(rot_key, None)
 
@@ -741,18 +802,13 @@ async def process_zip(
 
                     job_config_obj = PDFJobConfig(**job_config_data)
 
-                    # Prepare normalized JSON for reseller: set winding=2, keep original dimensions
+                    # Prepare normalized JSON for reseller: keep original winding, remove rotation fields
                     normalized_json_bytes = None
                     if reseller_detected:
                         try:
                             normalized = dict(config_dict)
-                            # Set winding to 2 (RW2 - file is ready to use after processing)
-                            if "Winding" in normalized:
-                                normalized["Winding"] = 2
-                            elif "winding" in normalized:
-                                normalized["winding"] = 2
-                            else:
-                                normalized["Winding"] = 2
+                            # Keep original winding value - upstream system will handle rotation
+                            # We rotate the PDF here, but leave winding as-is for upstream processing
                             # Remove rotation fields since file is already rotated
                             for rot_key in ("Rotate", "rotate", "Orientation", "Rotation"):
                                 normalized.pop(rot_key, None)

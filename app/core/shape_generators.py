@@ -21,7 +21,8 @@ class ShapeGenerator:
         height_mm: float,
         box_coords: Dict[str, float],
         spot_color_name: str = None,
-        line_thickness: float = None
+        line_thickness: float = None,
+        mediabox_coords: Optional[Dict[str, float]] = None
     ) -> str:
         """
         Create a PDF with a circular/oval dieline positioned on the trimbox
@@ -48,13 +49,22 @@ class ShapeGenerator:
         page_width = box_coords['x1'] - box_coords['x0']
         page_height = box_coords['y1'] - box_coords['y0']
         
+        
         # Create temporary file
         temp_file = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
         temp_path = temp_file.name
         temp_file.close()
         
-        # Create canvas with the same size as original PDF page
-        c = canvas.Canvas(temp_path, pagesize=(page_width + 2*box_coords['x0'], page_height + 2*box_coords['y0']))
+        # Create canvas with mediabox size to match base PDF (prevents scaling on merge)
+        if mediabox_coords:
+            canvas_width = mediabox_coords['x1'] - mediabox_coords['x0']
+            canvas_height = mediabox_coords['y1'] - mediabox_coords['y0']
+        else:
+            # Fallback to old behavior
+            canvas_width = page_width + 2*box_coords['x0']
+            canvas_height = page_height + 2*box_coords['y0']
+        
+        c = canvas.Canvas(temp_path, pagesize=(canvas_width, canvas_height))
         
         # Define spot color (100% Magenta with overprint)
         stans_color = CMYKColorSep(
@@ -100,7 +110,8 @@ class ShapeGenerator:
         corner_radius_mm: float,
         box_coords: Dict[str, float],
         spot_color_name: str = None,
-        line_thickness: float = None
+        line_thickness: float = None,
+        mediabox_coords: Optional[Dict[str, float]] = None
     ) -> str:
         """
         Create a PDF with a rectangular dieline positioned on the trimbox
@@ -133,13 +144,22 @@ class ShapeGenerator:
         page_width = box_coords['x1'] - box_coords['x0']
         page_height = box_coords['y1'] - box_coords['y0']
         
+        
         # Create temporary file
         temp_file = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
         temp_path = temp_file.name
         temp_file.close()
         
-        # Create canvas with the same size as original PDF page
-        c = canvas.Canvas(temp_path, pagesize=(page_width + 2*box_coords['x0'], page_height + 2*box_coords['y0']))
+        # Create canvas with mediabox size to match base PDF (prevents scaling on merge)
+        if mediabox_coords:
+            canvas_width = mediabox_coords['x1'] - mediabox_coords['x0']
+            canvas_height = mediabox_coords['y1'] - mediabox_coords['y0']
+        else:
+            # Fallback to old behavior
+            canvas_width = page_width + 2*box_coords['x0']
+            canvas_height = page_height + 2*box_coords['y0']
+        
+        c = canvas.Canvas(temp_path, pagesize=(canvas_width, canvas_height))
         
         # Define spot color (100% Magenta with overprint)
         stans_color = CMYKColorSep(
