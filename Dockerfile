@@ -34,8 +34,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy application code
 COPY . .
 
-# Create directories for uploads and outputs
-RUN mkdir -p /app/uploads /app/outputs /app/temp
+# Create directories for uploads, outputs, and storage
+RUN mkdir -p /app/uploads /app/outputs /app/temp /app/pdf_storage/original /app/pdf_storage/processed
 
 # Expose port (use 8080 for DO App Platform compatibility)
 EXPOSE 8080

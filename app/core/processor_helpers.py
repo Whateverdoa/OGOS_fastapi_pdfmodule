@@ -170,9 +170,13 @@ def preprocess_dimensions_and_winding(
     if not rotation_angle:
         if not dimensions_match:
             if dimensions_match_swapped:
+                # Swap config dimensions to match PDF
+                job_config.width = artwork_height
+                job_config.height = artwork_width
                 warnings.append(
                     f"Artwork dimensions ({artwork_width:.1f}x{artwork_height:.1f}mm) "
-                    f"are swapped compared to order ({order_width:.1f}x{order_height:.1f}mm)"
+                    f"are swapped compared to order ({order_width:.1f}x{order_height:.1f}mm). "
+                    f"Swapped config to {job_config.width:.1f}x{job_config.height:.1f}mm."
                 )
             else:
                 warnings.append(

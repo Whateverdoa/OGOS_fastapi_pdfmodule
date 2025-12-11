@@ -215,6 +215,13 @@ class StansCompoundPathConverter:
         content_text: str,
         stans_names: Set[str],
     ) -> Tuple[List[str], List[List[str]], Optional[int]]:
+        """
+        Extract stans dieline sequences from content text.
+        
+        IMPORTANT: This tracks q/Q balance to ensure all nested q's have their
+        matching Q's consumed. This prevents graphics state stack underflow
+        in downstream PDF processors like iText7.
+        """
         lines = content_text.split('\n')
         filtered_lines: List[str] = []
         sequences: List[List[str]] = []
@@ -222,21 +229,82 @@ class StansCompoundPathConverter:
 
         collecting = False
         current_sequence: List[str] = []
+        q_depth = 0  # Track nested q/Q balance within the sequence
 
         i = 0
         while i < len(lines):
             line = lines[i]
 
             if collecting:
-                current_sequence.append(line)
                 stripped = line.strip()
+                
+                # Track q depth before adding to sequence
+                if stripped == 'q':
+                    q_depth += 1
+                elif stripped == 'Q':
+                    q_depth -= 1
+                
+                current_sequence.append(line)
+                
                 if stripped in self.PAINT_OPERATORS:
-                    if i + 1 < len(lines) and lines[i + 1].strip() == 'Q':
+                    # After stroke, handle q/Q balance
+                    # If q_depth > 0: we need more Q's (consume them)
+                    # If q_depth < 0: we have excess Q's (already in sequence, need to prepend q's)
+                    # If q_depth == 0: balanced
+                    
+                    if q_depth < 0:
+                        # Excess Q's detected - prepend q's at the start of the sequence to balance
+                        # This prevents "Stack empty" errors in downstream processors
+                        # The excess Q's are already in the sequence, so we need to add matching q's
+                        excess_q = abs(q_depth)
+                        prepend_qs = ['q'] * excess_q
+                        # Insert q's right after the colorspace line (which triggered collection)
+                        # The sequence structure is: [prelude..., colorspace_line, path_ops..., paint_op, Q's...]
+                        # Find where the colorspace line is - it's the first line that contains a stans name
+                        colorspace_pos = 0
+                        for idx, seq_line in enumerate(current_sequence):
+                            # Check if this line contains a stans colorspace reference
+                            stripped_seq = seq_line.strip()
+                            if stripped_seq:
+                                tokens = stripped_seq.split()
+                                # Colorspace lines typically have format like "/Stans cs" or similar
+                                if len(tokens) >= 2 and any(name in stripped_seq for name in stans_names):
+                                    colorspace_pos = idx + 1
+                                    break
+                        # If we couldn't find it, insert at position 1 (after first line, assuming it's colorspace)
+                        if colorspace_pos == 0:
+                            colorspace_pos = 1
+                        # Insert q's right after colorspace line
+                        for q_op in prepend_qs:
+                            current_sequence.insert(colorspace_pos, q_op)
+                            colorspace_pos += 1
+                        q_depth = 0  # Now balanced
+                    
+                    # Consume matching Q's for any nested q's (q_depth >= 0 now)
+                    while q_depth > 0 and i + 1 < len(lines):
+                        next_line = lines[i + 1]
+                        next_stripped = next_line.strip()
+                        if next_stripped == 'Q':
+                            current_sequence.append(next_line)
+                            q_depth -= 1
+                            i += 1
+                        elif next_stripped == '' or next_stripped.endswith(' gs'):
+                            # Allow empty lines and graphics state between S and Q
+                            current_sequence.append(next_line)
+                            i += 1
+                        else:
+                            # Non-Q content, stop consuming
+                            break
+                    
+                    # Also consume the final trailing Q if present and balanced
+                    if i + 1 < len(lines) and lines[i + 1].strip() == 'Q' and q_depth == 0:
                         current_sequence.append(lines[i + 1])
                         i += 1
+                    
                     sequences.append(current_sequence)
                     collecting = False
                     current_sequence = []
+                    q_depth = 0
                 i += 1
                 continue
 
@@ -246,6 +314,10 @@ class StansCompoundPathConverter:
                 prelude = self._pull_prelude(filtered_lines)
                 if prelude:
                     current_sequence.extend(prelude)
+                    # Count q's in prelude
+                    for p in prelude:
+                        if p.strip() == 'q':
+                            q_depth += 1
                 current_sequence.append(line)
                 if insertion_index is None:
                     insertion_index = len(filtered_lines)

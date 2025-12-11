@@ -220,6 +220,7 @@ test_outputs/
 tmp/
 temp/
 *.tmp
+*pdf
 
 # UV package manager
 uv.lock

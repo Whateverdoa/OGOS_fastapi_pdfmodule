@@ -85,6 +85,12 @@ def detect_reseller(context_text: str, config: Dict[str, object]) -> bool:
         val = config.get(key)
         if isinstance(val, str) and any(k in val.lower() for k in keywords):
             return True
+
+    
+    # If Winding is present, assume reseller (as verified by user: "only files coming through are resellers")
+    if "Winding" in config or "winding" in config:
+        return True
+        
     return False
 
 
