@@ -1,70 +1,157 @@
 """
-Utility to fix q/Q imbalance in PDF content streams
+Utility to fix operator imbalances in PDF content streams.
+
+Handles three operator pairs:
+- q/Q (graphics state save/restore)
+- BT/ET (text object begin/end)
+- BMC/BDC/EMC (marked content begin/end)
+
+Ghostscript's pdfwrite device can introduce imbalances during font embedding.
+This utility removes excess closing operators and adds missing closers.
 """
 import pikepdf
-from typing import List
+import re
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def fix_q_Q_imbalance(pdf_path: str, output_path: str = None) -> bool:
     """
-    Fix q/Q operator imbalance in PDF content streams.
-    
-    Removes extra Q operators from the end of content streams
-    to balance with q operators.
-    
+    Fix operator imbalances (q/Q, BT/ET, BMC/EMC) in PDF content streams.
+
+    Removes excess closing operators and adds missing closers at end of streams.
+
     Args:
-        pdf_path: Path to PDF file
-        output_path: Optional output path (defaults to in-place)
-    
+        pdf_path: Path to input PDF
+        output_path: Path to output PDF (overwrites input if None)
+
     Returns:
-        True if fixed, False if no fix needed or failed
+        True if fixes were applied, False otherwise
     """
     if output_path is None:
         output_path = pdf_path
     
     try:
-        pdf = pikepdf.open(pdf_path)
-        fixed = False
-        
-        for page in pdf.pages:
-            if '/Contents' in page:
-                content_stream = page['/Contents']
-                
-                # Only handle single content stream (not array)
-                if not isinstance(content_stream, pikepdf.Array):
-                    content_bytes = content_stream.read_bytes()
-                    content_text = content_bytes.decode('latin-1', errors='replace')
+        with pikepdf.open(pdf_path, allow_overwriting_input=True) as pdf:
+            fixes_applied = False
+            
+            for page_num, page in enumerate(pdf.pages, 1):
+                if '/Contents' in page:
+                    contents = page['/Contents']
                     
-                    # Count q and Q
-                    lines = content_text.split('\n')
-                    q_count = sum(1 for line in lines if line.strip() == 'q')
-                    Q_count = sum(1 for line in lines if line.strip() == 'Q')
+                    # Handle array of content streams
+                    if isinstance(contents, pikepdf.Array):
+                        for stream in contents:
+                            if isinstance(stream, pikepdf.Stream):
+                                if _fix_operator_balance(stream):
+                                    fixes_applied = True
+                                    logger.info(f"Fixed operator imbalance in page {page_num}")
                     
-                    if Q_count > q_count:
-                        # Remove extra Q operators from the end
-                        extra_Q = Q_count - q_count
-                        fixed_lines = []
-                        Q_to_remove = extra_Q
-                        
-                        # Process lines in reverse to remove trailing Qs
-                        for line in reversed(lines):
-                            if Q_to_remove > 0 and line.strip() == 'Q':
-                                Q_to_remove -= 1
-                                # Skip this Q
-                                continue
-                            fixed_lines.insert(0, line)
-                        
-                        # Update content stream
-                        fixed_text = '\n'.join(fixed_lines)
-                        content_stream.write(fixed_text.encode('latin-1'))
-                        fixed = True
-        
-        if fixed:
-            pdf.save(output_path)
-        
-        pdf.close()
-        return fixed
-        
+                    # Handle single content stream
+                    elif isinstance(contents, pikepdf.Stream):
+                        if _fix_operator_balance(contents):
+                            fixes_applied = True
+                            logger.info(f"Fixed operator imbalance in page {page_num}")
+            
+            if fixes_applied:
+                pdf.save(output_path)
+                logger.info(f"Saved repaired PDF to {output_path}")
+            
+            return fixes_applied
+            
     except Exception as e:
-        print(f"Error fixing q/Q imbalance: {e}")
+        logger.error(f"Failed to fix q/Q imbalance: {e}")
+        return False
+
+
+def _fix_operator_balance(stream_obj) -> bool:
+    """
+    Fix operator balance in a content stream.
+
+    Handles three operator pairs:
+    - q/Q (graphics state)
+    - BT/ET (text objects)
+    - BMC|BDC/EMC (marked content)
+
+    Removes excess closing operators and adds missing closers at end.
+
+    Args:
+        stream_obj: pikepdf Stream object
+
+    Returns:
+        True if any fixes were applied
+    """
+    try:
+        content_bytes = bytes(stream_obj.read_bytes())
+        content_str = content_bytes.decode('latin-1', errors='ignore')
+
+        lines = content_str.split('\n')
+        q_stack = bt_stack = bmc_stack = 0
+        balanced_lines = []
+
+        for line in lines:
+            stripped = line.strip()
+
+            # q/Q handling
+            if stripped == 'q':
+                q_stack += 1
+                balanced_lines.append(line)
+            elif stripped == 'Q':
+                if q_stack > 0:
+                    q_stack -= 1
+                    balanced_lines.append(line)
+                else:
+                    logger.debug("Removing extra Q operator")
+                    continue
+
+            # BT/ET handling
+            elif stripped == 'BT':
+                bt_stack += 1
+                balanced_lines.append(line)
+            elif stripped == 'ET':
+                if bt_stack > 0:
+                    bt_stack -= 1
+                    balanced_lines.append(line)
+                else:
+                    logger.debug("Removing extra ET operator")
+                    continue
+
+            # BMC/BDC/EMC handling (handles /Name BMC, /OC/R5 BDC, etc.)
+            elif re.match(r'^/[\w/]+\s+(BMC|BDC)$', stripped) or stripped in ('BMC', 'BDC'):
+                bmc_stack += 1
+                balanced_lines.append(line)
+            elif stripped == 'EMC':
+                if bmc_stack > 0:
+                    bmc_stack -= 1
+                    balanced_lines.append(line)
+                else:
+                    logger.debug("Removing extra EMC operator")
+                    continue
+
+            else:
+                balanced_lines.append(line)
+
+        # Add missing closing operators (innermost to outermost)
+        for _ in range(bt_stack):
+            balanced_lines.append('ET')
+            logger.debug("Adding missing ET operator")
+
+        for _ in range(bmc_stack):
+            balanced_lines.append('EMC')
+            logger.debug("Adding missing EMC operator")
+
+        for _ in range(q_stack):
+            balanced_lines.append('Q')
+            logger.debug("Adding missing Q operator")
+
+        fixed_content = '\n'.join(balanced_lines)
+        if fixed_content != content_str:
+            stream_obj.write(fixed_content.encode('latin-1'))
+            return True
+
+        return False
+
+    except Exception as e:
+        logger.error(f"Failed to process content stream: {e}")
         return False
