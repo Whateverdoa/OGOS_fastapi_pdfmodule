@@ -165,6 +165,9 @@ class PDFUtils:
         """
         Ensure all fonts are embedded using Ghostscript (if available).
         Rewrites the PDF in place when successful.
+        
+        Note: Ghostscript may introduce graphics state imbalances (q/Q operators).
+        This method fixes any imbalances after embedding.
         """
         gs = shutil.which('gs') or shutil.which('ghostscript')
         if not gs:
@@ -191,6 +194,11 @@ class PDFUtils:
             res = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             if res.returncode == 0 and os.path.getsize(tmp.name) > 0:
                 os.replace(tmp.name, pdf_path)
+                
+                # Fix any q/Q imbalances introduced by Ghostscript
+                from .q_Q_fixer import fix_q_Q_imbalance
+                fix_q_Q_imbalance(pdf_path)
+                
                 return True
         except Exception:
             pass
@@ -201,6 +209,9 @@ class PDFUtils:
         """
         Convert all text to vector outlines using Ghostscript (pdfwrite).
         Rewrites the PDF in place when successful.
+        
+        Note: Ghostscript may introduce graphics state imbalances (q/Q operators).
+        This method fixes any imbalances after outlining.
         """
         gs = shutil.which('gs') or shutil.which('ghostscript')
         if not gs:
@@ -223,6 +234,11 @@ class PDFUtils:
             res = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             if res.returncode == 0 and os.path.getsize(tmp.name) > 0:
                 os.replace(tmp.name, pdf_path)
+                
+                # Fix any q/Q imbalances introduced by Ghostscript
+                from .q_Q_fixer import fix_q_Q_imbalance
+                fix_q_Q_imbalance(pdf_path)
+                
                 return True
         except Exception:
             pass
@@ -522,3 +538,117 @@ class PDFUtils:
         except Exception as e:
             print(f"Error getting PDF info: {e}")
             return {}
+
+    @staticmethod
+    def embed_all_fonts(pdf_path: str) -> bool:
+        """
+        Ensure all fonts are embedded using Ghostscript (if available).
+        Rewrites the PDF in place when successful.
+        """
+        gs = shutil.which('gs') or shutil.which('ghostscript')
+        if not gs:
+            return False
+        try:
+            tmp = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
+            tmp.close()
+            args = [
+                gs,
+                '-sDEVICE=pdfwrite',
+                '-dCompatibilityLevel=1.6',
+                '-dNOPAUSE',
+                '-dQUIET',
+                '-dBATCH',
+                '-dDetectDuplicateImages=true',
+                '-dCompressFonts=true',
+                '-dSubsetFonts=true',
+                '-dEmbedAllFonts=true',
+                '-sOutputFile=' + tmp.name,
+                pdf_path,
+            ]
+            res = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if res.returncode == 0 and os.path.getsize(tmp.name) > 0:
+                os.replace(tmp.name, pdf_path)
+                return True
+        except Exception:
+            pass
+        return False
+
+    @staticmethod
+    def outline_all_fonts(pdf_path: str) -> bool:
+        """
+        Convert all text to vector outlines using Ghostscript (pdfwrite).
+        Rewrites the PDF in place when successful.
+        """
+        gs = shutil.which('gs') or shutil.which('ghostscript')
+        if not gs:
+            return False
+        try:
+            tmp = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
+            tmp.close()
+            args = [
+                gs,
+                '-sDEVICE=pdfwrite',
+                '-dCompatibilityLevel=1.6',
+                '-dNOPAUSE',
+                '-dQUIET',
+                '-dBATCH',
+                '-dNoOutputFonts',
+                '-sOutputFile=' + tmp.name,
+                pdf_path,
+            ]
+            res = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if res.returncode == 0 and os.path.getsize(tmp.name) > 0:
+                os.replace(tmp.name, pdf_path)
+                return True
+        except Exception:
+            pass
+        return False
+
+    @staticmethod
+    def has_unembedded_fonts(pdf_path: str) -> bool:
+        """
+        Heuristic check: returns True if any font on any page lacks an embedded
+        font file (FontFile/FontFile2/FontFile3) in its FontDescriptor.
+        Also scans Form XObjects recursively.
+        """
+        try:
+            reader = PdfReader(pdf_path)
+            
+            def check_resources(resources):
+                if resources is None:
+                    return False
+                font_dict = resources.get('/Font')
+                if font_dict:
+                    for font_name, font_obj in font_dict.items():
+                        try:
+                            font = font_obj.get_object() if hasattr(font_obj, 'get_object') else font_obj
+                            descriptor = font.get('/FontDescriptor')
+                            if descriptor:
+                                desc = descriptor.get_object() if hasattr(descriptor, 'get_object') else descriptor
+                                # Check for embedded font file
+                                if not any(key in desc for key in ['/FontFile', '/FontFile2', '/FontFile3']):
+                                    return True
+                        except Exception:
+                            pass
+                # Recurse into XObjects
+                xobject_dict = resources.get('/XObject')
+                if xobject_dict:
+                    for xobj_name, xobj in xobject_dict.items():
+                        try:
+                            xobj_resolved = xobj.get_object() if hasattr(xobj, 'get_object') else xobj
+                            if xobj_resolved.get('/Subtype') == '/Form':
+                                xobj_resources = xobj_resolved.get('/Resources')
+                                if check_resources(xobj_resources):
+                                    return True
+                        except Exception:
+                            pass
+                return False
+            
+            for page in reader.pages:
+                resources = page.get('/Resources')
+                if check_resources(resources):
+                    return True
+            return False
+        except Exception:
+            return False
+
