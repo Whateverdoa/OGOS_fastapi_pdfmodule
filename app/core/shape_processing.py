@@ -3,8 +3,15 @@ Shape Processing Module
 
 Handles processing of custom and standard (circle/rectangle) shapes.
 Extracted from PDFProcessor for better organization.
+
+Pipeline per spec:
+1. Font check/fix first
+2. Shape detection (circle/rectangle vs custom)
+3. Custom shapes use StansProcessor V3
+4. Rotation applied based on winding
 """
 
+import logging
 import os
 import shutil
 import tempfile
@@ -12,12 +19,13 @@ from typing import Any, Dict
 
 from ..models.schemas import FontMode, PDFJobConfig, ShapeType
 from ..utils.pdf_utils import PDFUtils
-from ..utils.pymupdf_compound_path_tool import PyMuPDFCompoundPathTool
 from ..utils.spot_color_handler import SpotColorHandler
 from ..utils.spot_color_renamer import SpotColorRenamer
-from ..utils.stans_compound_path_converter import StansCompoundPathConverter
+from ..utils.stans_processor_v3 import StansProcessor
 from ..utils.universal_dieline_remover import UniversalDielineRemover
 from .shape_generators import ShapeGenerator
+
+logger = logging.getLogger(__name__)
 
 
 class ShapeProcessor:
@@ -29,55 +37,90 @@ class ShapeProcessor:
         self.spot_color_renamer = SpotColorRenamer()
         self.pdf_utils = PDFUtils()
         self.dieline_remover = UniversalDielineRemover()
-        self.compound_converter = StansCompoundPathConverter()
-        self.pymupdf_compound_tool = PyMuPDFCompoundPathTool()
+        # V3 processor for custom shapes
+        self.stans_processor = StansProcessor()
 
     def process_custom_shape(
         self, pdf_path: str, job_config: PDFJobConfig, analysis: Dict[str, Any]
-    ) -> str:
-        """Process custom shape - keep existing shape but rename spot color."""
+    ) -> tuple[str, Dict[str, Any]]:
+        """
+        Process custom shape using StansProcessor V3.
+        
+        Pipeline:
+        1. Check and fix fonts (if needed)
+        2. Use V3 processor for compound path creation
+        3. Apply rotation based on winding
+        """
         temp_file = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
         output_path = temp_file.name
         temp_file.close()
 
-        # Rename cutcontour to stans
-        rename_temp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
-        rename_temp_path = rename_temp.name
-        rename_temp.close()
-
-        rename_success = self.spot_color_renamer.rename_cutcontour_to_stans(
-            pdf_path, rename_temp_path, job_config.spot_color_name
+        # Step 1: Font check/fix FIRST
+        working_path = self._ensure_fonts(pdf_path, job_config)
+        
+        # Step 2: Use StansProcessor V3 for compound path
+        processor = StansProcessor(
+            spot_color_name=job_config.spot_color_name,
+            line_thickness=job_config.line_thickness,
+            winding=job_config.winding or 2
         )
-        if not rename_success:
-            shutil.copy2(pdf_path, rename_temp_path)
-
-        # Ensure compound paths
-        compound_temp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
-        compound_temp_path = compound_temp.name
-        compound_temp.close()
-
-        compound_result = self.compound_converter.ensure_compound_paths(
-            rename_temp_path, compound_temp_path
-        )
-        source_path = (
-            compound_temp_path if compound_result.get("success") else rename_temp_path
-        )
-
-        # Final spot color rename
-        success = self.spot_color_handler.rename_spot_color(
-            source_path, output_path, job_config.spot_color_name
-        )
-        if success:
-            self.spot_color_handler.update_spot_color_properties(
-                output_path,
-                output_path,
-                job_config.spot_color_name,
-                job_config.line_thickness,
-            )
-
-        # Post-processing
+        
+        result = processor.process(working_path, output_path)
+        
+        if not result.success:
+            # Fallback: copy original if V3 fails
+            logger.warning(f"V3 processor failed: {result.error}, using original")
+            shutil.copy2(pdf_path, output_path)
+        
+        # Post-processing (marks removal if needed)
         self._apply_post_processing(output_path, job_config)
-        return output_path
+        
+        stats = {
+            "original_stans_count": result.original_stans_count,
+            "compound_paths_created": result.compound_paths_created,
+            "rotation_applied": result.rotation_applied,
+            "colors_renamed": result.colors_renamed,
+            "font_fixed": getattr(result, 'font_fixed', False),
+        }
+        return output_path, stats
+    
+    def _ensure_fonts(self, pdf_path: str, job_config: PDFJobConfig) -> str:
+        """
+        Check and fix fonts before processing.
+        Returns path to working file (may be original or temp with fixed fonts).
+        """
+        # Check for font issues
+        if not PDFUtils.has_unembedded_fonts(pdf_path):
+            return pdf_path
+        
+        logger.info("Detected unembedded fonts, attempting to fix")
+        
+        # Create temp copy for font fixing
+        temp_file = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
+        temp_path = temp_file.name
+        temp_file.close()
+        shutil.copy2(pdf_path, temp_path)
+        
+        # Try embedding first, then outlining as fallback
+        font_mode = getattr(job_config, 'font_mode', None)
+        
+        if font_mode == FontMode.outline:
+            if PDFUtils.outline_all_fonts(temp_path):
+                logger.info("Fonts outlined successfully")
+                return temp_path
+        else:
+            if PDFUtils.embed_all_fonts(temp_path):
+                logger.info("Fonts embedded successfully")
+                return temp_path
+            # Fallback to outline
+            if PDFUtils.outline_all_fonts(temp_path):
+                logger.info("Fonts outlined as fallback")
+                return temp_path
+        
+        logger.warning("Font fixing failed, using original")
+        os.unlink(temp_path)
+        return pdf_path
+
 
     def process_standard_shape(
         self,
@@ -85,15 +128,22 @@ class ShapeProcessor:
         job_config: PDFJobConfig,
         analysis: Dict[str, Any],
         box_coords: Dict[str, float],
-    ) -> str:
+    ) -> tuple[str, Dict[str, Any]]:
         """Process standard shapes (circle/rectangle)."""
+        # Step 1: Font check/fix FIRST
+        working_path = self._ensure_fonts(pdf_path, job_config)
+
         # Create clean PDF without existing dielines
-        clean_path = self._create_clean_pdf(pdf_path, job_config, analysis)
+        clean_path = self._create_clean_pdf(working_path, job_config, analysis)
+
+        # Step 2: Apply font handling to clean PDF BEFORE merging stans
+        # This prevents Ghostscript from reordering the stans into wrong position
+        self._apply_font_handling(clean_path, job_config)
 
         # Generate new dieline
         dieline_path = self._generate_dieline(job_config, analysis, box_coords)
 
-        # Merge clean PDF with dieline
+        # Merge clean PDF with dieline (stans stays on top, outside transforms)
         temp_output = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
         output_path = temp_output.name
         temp_output.close()
@@ -107,15 +157,21 @@ class ShapeProcessor:
             except Exception:
                 pass
 
-        # Finalize
-        self.pymupdf_compound_tool.process(output_path, output_path)
+        # Finalize: prune spot colors and ensure overprint
+        # No compound path processing needed - we just generated a single new shape
         self._prune_spot_colors(output_path, job_config.spot_color_name)
         self._ensure_overprint(
             output_path, job_config.spot_color_name, job_config.line_thickness
         )
-        self._apply_font_handling(output_path, job_config)
+        # Apply remaining post-processing (marks removal, q/Q fix) but NOT font handling again
+        self._apply_post_processing_no_fonts(output_path, job_config)
 
-        return output_path
+        stats = {
+            "original_stans_count": 0,  # We removed existing, created new
+            "compound_paths_created": 1,  # We created one new shape
+            "shape_generated": job_config.shape.value,
+        }
+        return output_path, stats
 
     def _create_clean_pdf(
         self, pdf_path: str, job_config: PDFJobConfig, analysis: Dict[str, Any]
@@ -185,6 +241,9 @@ class ShapeProcessor:
 
     def _apply_post_processing(self, output_path: str, job_config: PDFJobConfig):
         """Apply post-processing: marks removal and font handling."""
+        logger = logging.getLogger(__name__)
+        logger.info(f"Starting post-processing for {output_path}")
+
         if getattr(job_config, "remove_marks", False):
             temp_markless = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
             markless_path = temp_markless.name
@@ -199,6 +258,44 @@ class ShapeProcessor:
                     pass
 
         self._apply_font_handling(output_path, job_config)
+
+        # Always fix operator imbalances (q/Q, BT/ET, BMC/EMC) as final cleanup
+        try:
+            logger.info(f"Fixing operator imbalances in {output_path}")
+            from app.utils.q_Q_fixer import fix_q_Q_imbalance
+            fix_result = fix_q_Q_imbalance(output_path)
+            logger.info(f"Operator fix result: {fix_result}")
+        except Exception as e:
+            logger.error(f"Failed to fix operators: {e}", exc_info=True)
+
+    def _apply_post_processing_no_fonts(self, output_path: str, job_config: PDFJobConfig):
+        """Apply post-processing WITHOUT font handling (for standard shapes where fonts are handled before merge)."""
+        logger = logging.getLogger(__name__)
+        logger.info(f"Starting post-processing (no fonts) for {output_path}")
+
+        if getattr(job_config, "remove_marks", False):
+            temp_markless = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
+            markless_path = temp_markless.name
+            temp_markless.close()
+            mark_res = self.dieline_remover.remove_registration_marks(
+                output_path, markless_path
+            )
+            if mark_res.get("success"):
+                try:
+                    os.replace(markless_path, output_path)
+                except Exception:
+                    pass
+
+        # Skip font handling - already done before merge
+
+        # Always fix operator imbalances (q/Q, BT/ET, BMC/EMC) as final cleanup
+        try:
+            logger.info(f"Fixing operator imbalances in {output_path}")
+            from app.utils.q_Q_fixer import fix_q_Q_imbalance
+            fix_result = fix_q_Q_imbalance(output_path)
+            logger.info(f"Operator fix result: {fix_result}")
+        except Exception as e:
+            logger.error(f"Failed to fix operators: {e}", exc_info=True)
 
     def _apply_font_handling(self, output_path: str, job_config: PDFJobConfig):
         """Handle font embedding/outlining."""
