@@ -70,7 +70,7 @@ def _fix_operator_balance(stream_obj) -> bool:
     Fix operator balance in a content stream.
 
     Handles three operator pairs:
-    - q/Q (graphics state)
+    - q/Q (graphics state) - including inline like "q 0.1 0 0 0.1 0 0 cm"
     - BT/ET (text objects)
     - BMC|BDC/EMC (marked content)
 
@@ -93,16 +93,33 @@ def _fix_operator_balance(stream_obj) -> bool:
         for line in lines:
             stripped = line.strip()
 
-            # q/Q handling
+            # q/Q handling - check for standalone or inline (e.g., "q 0.1 0 0 0.1 0 0 cm")
+            # Standalone q
             if stripped == 'q':
                 q_stack += 1
                 balanced_lines.append(line)
+            # Inline q at start of line (e.g., "q 0.1 0 0 0.1 0 0 cm")
+            elif re.match(r'^q\s+', stripped):
+                q_stack += 1
+                balanced_lines.append(line)
+            # Standalone Q
             elif stripped == 'Q':
                 if q_stack > 0:
                     q_stack -= 1
                     balanced_lines.append(line)
                 else:
                     logger.debug("Removing extra Q operator")
+                    continue
+            # Inline Q at end of line (e.g., "... Q")
+            elif re.search(r'\s+Q$', stripped):
+                if q_stack > 0:
+                    q_stack -= 1
+                    balanced_lines.append(line)
+                else:
+                    # Remove the trailing Q but keep rest of line
+                    fixed_line = re.sub(r'\s+Q$', '', line)
+                    balanced_lines.append(fixed_line)
+                    logger.debug("Removing extra inline Q operator")
                     continue
 
             # BT/ET handling
