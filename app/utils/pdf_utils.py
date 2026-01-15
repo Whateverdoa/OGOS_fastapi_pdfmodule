@@ -184,6 +184,7 @@ class PDFUtils:
                 '-dNOPAUSE',
                 '-dQUIET',
                 '-dBATCH',
+                '-dAutoRotatePages=/None',  # Preserve original page rotation
                 '-dDetectDuplicateImages=true',
                 '-dCompressFonts=true',
                 '-dSubsetFonts=true',
@@ -227,6 +228,7 @@ class PDFUtils:
                 '-dNOPAUSE',
                 '-dQUIET',
                 '-dBATCH',
+                '-dAutoRotatePages=/None',  # Preserve original page rotation
                 '-dNoOutputFonts',
                 '-sOutputFile=' + tmp.name,
                 pdf_path,
@@ -558,6 +560,7 @@ class PDFUtils:
                 '-dNOPAUSE',
                 '-dQUIET',
                 '-dBATCH',
+                '-dAutoRotatePages=/None',  # Preserve original page rotation
                 '-dDetectDuplicateImages=true',
                 '-dCompressFonts=true',
                 '-dSubsetFonts=true',
@@ -592,6 +595,7 @@ class PDFUtils:
                 '-dNOPAUSE',
                 '-dQUIET',
                 '-dBATCH',
+                '-dAutoRotatePages=/None',  # Preserve original page rotation
                 '-dNoOutputFonts',
                 '-sOutputFile=' + tmp.name,
                 pdf_path,
