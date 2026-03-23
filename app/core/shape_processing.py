@@ -298,7 +298,7 @@ class ShapeProcessor:
             logger.error(f"Failed to fix operators: {e}", exc_info=True)
 
     def _apply_font_handling(self, output_path: str, job_config: PDFJobConfig):
-        """Handle font embedding/outlining."""
+        """Handle font embedding/outlining and finalize for strict preflight checks."""
         try:
             if getattr(job_config, "fonts", FontMode.embed) == FontMode.outline:
                 self.pdf_utils.outline_all_fonts(output_path)
@@ -306,6 +306,10 @@ class ShapeProcessor:
                 ok = self.pdf_utils.embed_all_fonts(output_path)
                 if (not ok) or self.pdf_utils.has_unembedded_fonts(output_path):
                     self.pdf_utils.outline_all_fonts(output_path)
+
+            # Final cleanup pass: some preflight tools flag stale font objects
+            # even after successful embed/outline.
+            self.pdf_utils.rewrite_preflight_safe(output_path)
         except Exception:
             pass
 
