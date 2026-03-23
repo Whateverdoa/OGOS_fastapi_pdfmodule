@@ -247,6 +247,42 @@ class PDFUtils:
         return False
 
     @staticmethod
+    def rewrite_preflight_safe(pdf_path: str) -> bool:
+        """
+        Final Ghostscript rewrite to remove stale font objects/resources that
+        some external preflight tools still flag after embed/outline.
+        """
+        gs = shutil.which('gs') or shutil.which('ghostscript')
+        if not gs:
+            return False
+        try:
+            tmp = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
+            tmp.close()
+            args = [
+                gs,
+                '-sDEVICE=pdfwrite',
+                '-dCompatibilityLevel=1.6',
+                '-dNOPAUSE',
+                '-dQUIET',
+                '-dBATCH',
+                '-dAutoRotatePages=/None',
+                '-dDetectDuplicateImages=true',
+                '-dCompressFonts=true',
+                '-dSubsetFonts=true',
+                '-dEmbedAllFonts=true',
+                '-dPDFSETTINGS=/prepress',
+                '-sOutputFile=' + tmp.name,
+                pdf_path,
+            ]
+            res = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if res.returncode == 0 and os.path.getsize(tmp.name) > 0:
+                os.replace(tmp.name, pdf_path)
+                return True
+        except Exception:
+            pass
+        return False
+
+    @staticmethod
     def has_unembedded_fonts(pdf_path: str) -> bool:
         """
         Heuristic check: returns True if any font on any page lacks an embedded
