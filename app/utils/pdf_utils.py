@@ -258,6 +258,8 @@ class PDFUtils:
         try:
             tmp = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
             tmp.close()
+            # PDFSETTINGS resets distiller params; individual -d flags must follow
+            # so overrides take effect (same order as PDFRepair._repair_with_ghostscript).
             args = [
                 gs,
                 '-sDEVICE=pdfwrite',
@@ -265,12 +267,12 @@ class PDFUtils:
                 '-dNOPAUSE',
                 '-dQUIET',
                 '-dBATCH',
+                '-dPDFSETTINGS=/prepress',
                 '-dAutoRotatePages=/None',
                 '-dDetectDuplicateImages=true',
                 '-dCompressFonts=true',
                 '-dSubsetFonts=true',
                 '-dEmbedAllFonts=true',
-                '-dPDFSETTINGS=/prepress',
                 '-sOutputFile=' + tmp.name,
                 pdf_path,
             ]
